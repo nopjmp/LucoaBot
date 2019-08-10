@@ -50,7 +50,7 @@ namespace LucoaBot
 
         internal async Task MainAsync()
         {
-            using var services = BuildServiceProvider();
+            var services = BuildServiceProvider();
 
             logger = services.GetRequiredService<ILogger<Bot>>();
             logger.LogTrace("Loading configuration...");
