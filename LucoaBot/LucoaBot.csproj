@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Migrations\20190701190853_InitialCreate.cs" />
+    <Compile Remove="Migrations\20190701190853_InitialCreate.Designer.cs" />
+    <Compile Remove="Migrations\20190701191932_InitialCreate.cs" />
+    <Compile Remove="Migrations\20190701191932_InitialCreate.Designer.cs" />
+    <Compile Remove="Migrations\20190701192254_InitialCreate.cs" />
+    <Compile Remove="Migrations\20190701192254_InitialCreate.Designer.cs" />
+    <Compile Remove="Migrations\20190701193219_InitialCreate.cs" />
+    <Compile Remove="Migrations\20190701193219_InitialCreate.Designer.cs" />
+    <Compile Remove="Migrations\20190701220632_InitialCreate.cs" />
+    <Compile Remove="Migrations\20190701220632_InitialCreate.Designer.cs" />
+    <Compile Remove="Migrations\20190702194141_InitialCreate.cs" />
+    <Compile Remove="Migrations\20190702194141_InitialCreate.Designer.cs" />
+    <Compile Remove="Migrations\20190725213115_Initial.cs" />
+    <Compile Remove="Migrations\20190725213115_Initial.Designer.cs" />
+    <Compile Remove="Migrations\20190810010150_Initial.cs" />
+    <Compile Remove="Migrations\20190810010150_Initial.Designer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Discord.Net" Version="2.1.1" />
+    <PackageReference Include="dotenv.net" Version="1.0.6" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.0.0-preview7.19362.6" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="3.0.0-preview7.19362.6">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="3.0.0-preview7.19362.6">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="3.0.0-preview7" />
+    <PackageReference Include="Serilog" Version="2.9.0-dev-01119" />
+    <PackageReference Include="Serilog.Extensions.Logging" Version="3.0.0-dev-10240" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="3.1.2-dev-00806" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Listeners\" />
+  </ItemGroup>
+
+</Project>
