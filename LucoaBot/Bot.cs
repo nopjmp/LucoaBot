@@ -8,8 +8,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Serilog;
+#if !DEBUG
 using Serilog.Events;
 using Serilog.Filters;
+#endif
 using System;
 using System.Linq;
 using System.Net.Http;
