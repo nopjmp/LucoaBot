@@ -16,6 +16,7 @@ using Serilog.Filters;
 using System;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
@@ -51,6 +52,8 @@ namespace LucoaBot
               .CreateLogger();
         }
 
+        private CancellationTokenSource userCountTokenSource = null;
+
         internal async Task MainAsync()
         {
             var services = BuildServiceProvider();
@@ -59,7 +62,43 @@ namespace LucoaBot
             logger.LogTrace("Loading configuration...");
 
             var client = services.GetRequiredService<DiscordSocketClient>();
+            client.Ready += () =>
+            {
+                // Setup Cancellation for when we disconnect.
+                userCountTokenSource = new CancellationTokenSource();
+                var cancellationToken = userCountTokenSource.Token;
+
+                var userCountTask = Task.Run(async () =>
+                {
+                    var lastCount = -1;
+                    while (true)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        var count = client.Guilds.Aggregate(0, (a, g) => a + g.MemberCount);
+                        if (count != lastCount)
+                        {
+                            lastCount = count;
+                            await client.SetActivityAsync(new Game($"{count} users", ActivityType.Watching));
+                        }
+                        await Task.Delay(10000);
+                    }
+                });
+
+                return Task.CompletedTask;
+            };
+            client.Disconnected += (_) =>
+            {
+                if (userCountTokenSource != null)
+                {
+                    userCountTokenSource.Cancel();
+                    userCountTokenSource = null;
+                }
+
+                return Task.CompletedTask;
+            };
             client.Log += LogAsync;
+
             services.GetRequiredService<CommandService>().Log += LogAsync;
 
             await client.LoginAsync(TokenType.Bot,
