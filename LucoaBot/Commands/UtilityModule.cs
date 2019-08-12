@@ -169,7 +169,15 @@ namespace LucoaBot.Commands
         public async Task InviteAsync()
         {
             var applicationInfo = await Context.Client.GetApplicationInfoAsync();
-            ReplyAsync($"{baseUrl}?client_id={applicationInfo.Id}&permissions=8&scope=bot").SafeFireAndForget(false);
+            await ReplyAsync($"{baseUrl}?client_id={applicationInfo.Id}&permissions=8&scope=bot");
+        }
+
+        [Command("roll")]
+        [Summary("Generates a number between 1 and the number specified")]
+        public async Task RollAsync(int number)
+        {
+            var rng = new Random();
+            await ReplyAsync($"{Context.User.Mention} rolled a {rng.Next(number) + 1}");
         }
     }
 }
