@@ -72,7 +72,7 @@ namespace LucoaBot.Commands
             };
 
             builder.WithFields(fields.Select(e => new EmbedFieldBuilder() { Name = e.Key, Value = e.Value, IsInline = true }));
-            ReplyAsync("", false, builder.Build()).SafeFireAndForget();
+            ReplyAsync("", false, builder.Build()).SafeFireAndForget(false);
         }
 
         [Command("userinfo")]
