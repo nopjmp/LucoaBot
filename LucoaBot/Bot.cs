@@ -2,6 +2,7 @@
 using Discord.Commands;
 using Discord.WebSocket;
 using dotenv.net;
+using LucoaBot.Listeners;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -67,6 +68,9 @@ namespace LucoaBot
 
             await services.GetRequiredService<CommandHandlerService>().InitializeAsync();
 
+            services.GetRequiredService<StarboardListener>().Initialize();
+            services.GetRequiredService<TempatureListener>().Initialize();
+
             // warm database pool and check migrations
             if (services.GetRequiredService<DatabaseContext>().Database.GetPendingMigrations().Count() > 0)
             {
@@ -100,6 +104,8 @@ namespace LucoaBot
             .AddSingleton<CommandHandlerService>()
             .AddSingleton<HttpClient>()
             .AddDbContextPool<DatabaseContext>(options => options.UseNpgsql(Environment.GetEnvironmentVariable("DATASOURCE")))
+            .AddSingleton<StarboardListener>()
+            .AddSingleton<TempatureListener>()
             .BuildServiceProvider();
 
         private Task LogAsync(LogMessage msg)
