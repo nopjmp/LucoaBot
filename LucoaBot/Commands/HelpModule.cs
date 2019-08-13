@@ -44,7 +44,7 @@ namespace LucoaBot.Commands
                     var result = await cmd.CheckPreconditionsAsync(Context);
                     if (result.IsSuccess)
                     {
-                        stringBuilder.Append($"{config.Prefix}{cmd.Aliases.First()} ");
+                        stringBuilder.Append($"{config.Prefix}{cmd.Name} ");
                         stringBuilder.AppendJoin(" ", cmd.Parameters.Select(
                             p =>
                             {

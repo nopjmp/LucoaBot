@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace LucoaBot.Commands
 {
-    [Name("SelfRole")]
+    [Name("Self Role")]
     [RequireContext(ContextType.Guild)]
     public class SelfRoleModule : ModuleBase<SocketCommandContext>
     {
@@ -22,7 +22,7 @@ namespace LucoaBot.Commands
         [Command("roles")]
         [Alias("lsar")]
         [Summary("Lists self assignable roles.")]
-        public async Task ListRolesAsync() //(bool textOnly = false)
+        public async Task ListRolesAsync(bool textOnly = false)
         {
             var selfRoles = (await context.SelfRoles
                 .Where(r => r.GuildId == Context.Guild.Id)
@@ -56,6 +56,7 @@ namespace LucoaBot.Commands
         [Command("addrole")]
         [Alias("asar")]
         [Summary("Adds a role for self-assignment")]
+        [RequireUserPermission(GuildPermission.ManageMessages)]
         public async Task<RuntimeResult> AddRoleAsync(IRole role, string category = null)
         {
             var selfRoleCheck = await context.SelfRoles
@@ -81,6 +82,7 @@ namespace LucoaBot.Commands
         [Command("removerole")]
         [Alias("rsar")]
         [Summary("Removes a role from self assignment")]
+        [RequireUserPermission(GuildPermission.ManageMessages)]
         public async Task<RuntimeResult> RemoveRoleAsync(IRole role)
         {
             var selfRoleEntry = await context.SelfRoles

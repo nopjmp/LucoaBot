@@ -1,4 +1,5 @@
-﻿using Discord.Commands;
+﻿using Discord;
+using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -84,6 +85,26 @@ namespace LucoaBot.Services
                 return;
 
             await commands.ExecuteAsync(_context, argPos, services);
+
+            var _ = Task.Run(async () =>
+            {
+                var commandKey = message.Content.Substring(argPos).Trim().ToLowerInvariant();
+                if (!commands.Commands.Any(c => c.Name == commandKey || c.Aliases.Any(a => a == commandKey)))
+                {
+                    var command = await context.CustomCommands
+                        .Where(c => c.Command == commandKey)
+                        .FirstOrDefaultAsync();
+
+                    if (command != null)
+                    {
+                        // filter out @everyone and @here mentions...
+                        var response = command.Response
+                            .Replace("@everyone", "@\u0435veryone")
+                            .Replace("@here", "@h\u0435re");
+                        await _context.Channel.SendMessageAsync(response);
+                    }
+                }
+            });
         }
     }
 }
