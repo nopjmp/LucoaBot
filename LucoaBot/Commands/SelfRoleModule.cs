@@ -22,7 +22,7 @@ namespace LucoaBot.Commands
         [Command("roles")]
         [Alias("lsar")]
         [Summary("Lists self assignable roles.")]
-        public async Task ListRolesAsync(bool textOnly = false)
+        public async Task ListRolesAsync() //(bool textOnly = false)
         {
             var selfRoles = (await context.SelfRoles
                 .Where(r => r.GuildId == Context.Guild.Id)
