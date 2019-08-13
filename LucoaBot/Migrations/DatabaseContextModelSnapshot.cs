@@ -81,8 +81,7 @@ namespace LucoaBot.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GuildId")
-                        .IsUnique();
+                    b.HasIndex("GuildId");
 
                     b.HasIndex("GuildId", "RoleId")
                         .IsUnique();

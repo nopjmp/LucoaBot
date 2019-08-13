@@ -9,7 +9,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace LucoaBot.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    [Migration("20190810010906_Initial")]
+    [Migration("20190813052013_Initial")]
     partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -83,8 +83,7 @@ namespace LucoaBot.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GuildId")
-                        .IsUnique();
+                    b.HasIndex("GuildId");
 
                     b.HasIndex("GuildId", "RoleId")
                         .IsUnique();

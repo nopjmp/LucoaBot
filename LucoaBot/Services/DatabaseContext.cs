@@ -39,7 +39,7 @@ namespace LucoaBot.Services
                 {
                     b.Property(e => e.GuildId).HasConversion<long>();
                     b.Property(e => e.RoleId).HasConversion<long>();
-                    b.HasIndex(e => e.GuildId).IsUnique();
+                    b.HasIndex(e => e.GuildId);
                     b.HasIndex(e => new { e.GuildId, e.RoleId }).IsUnique();
                 });
         }

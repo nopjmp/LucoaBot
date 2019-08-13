@@ -78,8 +78,7 @@ namespace LucoaBot.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_SelfRoles_GuildId",
                 table: "SelfRoles",
-                column: "GuildId",
-                unique: true);
+                column: "GuildId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SelfRoles_GuildId_RoleId",
