@@ -16,8 +16,11 @@ namespace LucoaBot.Listeners
         private readonly DiscordSocketClient client;
 
         private readonly Emoji emoji = new Emoji("⭐");
+#if !DEBUG
+        private readonly static int DEFAULT_THRESHOLD = 3;
+#else
         private readonly static int DEFAULT_THRESHOLD = 1;
-
+#endif
         public StarboardListener(DiscordSocketClient client, DatabaseContext context)
         {
             this.client = client;
