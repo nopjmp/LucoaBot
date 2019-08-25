@@ -4,7 +4,7 @@ namespace LucoaBot
 {
     public class CommandResult : RuntimeResult
     {
-        public CommandResult(CommandError? error, string reason):base(error, reason)
+        public CommandResult(CommandError? error, string reason) : base(error, reason)
         {
         }
 

@@ -1,9 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using LucoaBot.Services;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -61,7 +59,7 @@ namespace LucoaBot.Listeners
                                 if (list.Any())
                                     await m.Channel.SendMessageAsync(string.Join("\n", list));
                             }
-                            catch(Exception)
+                            catch (Exception)
                             {
                                 // Do nothing
                             }

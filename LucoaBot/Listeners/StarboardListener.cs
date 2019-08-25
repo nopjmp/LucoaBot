@@ -1,13 +1,11 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Linq;
-using System.Threading.Tasks;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace LucoaBot.Listeners
 {
@@ -161,7 +159,7 @@ namespace LucoaBot.Listeners
                             }
                         }
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         logger.LogError(e, "Exception thrown in Client_ReactionAdded");
                     }
@@ -205,7 +203,7 @@ namespace LucoaBot.Listeners
                             await ProcessReaction(config, channel, message, count);
                         }
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         logger.LogError(e, "Exception thrown in Client_ReactionRemoved");
                     }

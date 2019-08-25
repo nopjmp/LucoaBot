@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace LucoaBot.Commands
@@ -152,16 +151,17 @@ namespace LucoaBot.Commands
 
         [Command("stats")]
         [Summary("Displays the bot statistics")]
-        public async Task StatsAsync()
+        public Task<RuntimeResult> StatsAsync()
         {
-            var sb = new StringBuilder();
-
-            sb.Append("📊📈 **Stats**\n");
-
             var uptime = DateTime.UtcNow - Process.GetCurrentProcess().StartTime.ToUniversalTime();
-            sb.Append("🔥 **Uptime:** ").Append(uptime.ToHumanTimeString(2));
+            var message =
+                $"📊📈 **Stats**\n" +
+                $"🔥 **Uptime:** {uptime.ToHumanTimeString(2)}\n" +
+                $"🏓 **Ping:** {Context.Client.Latency}ms\n" +
+                $"🛡 **Guilds:** {Context.Client.Guilds.Count()}\n" +
+                $"😊 **Total Members:** {Context.Client.Guilds.Aggregate(0, (a, g) => a + g.MemberCount)}";
 
-            await ReplyAsync(sb.ToString());
+            return Task.FromResult<RuntimeResult>(CommandResult.FromSuccess(message));
         }
 
         const string baseUrl = "https://discordapp.com/api/oauth2/authorize";

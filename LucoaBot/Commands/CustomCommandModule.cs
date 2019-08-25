@@ -1,20 +1,17 @@
-﻿using Discord.Commands;
-using LucoaBot.Services;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using System.Linq;
-using Microsoft.EntityFrameworkCore;
+﻿using Discord;
+using Discord.Commands;
 using LucoaBot.Models;
-using Discord;
+using LucoaBot.Services;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace LucoaBot.Commands
 {
     [Name("CustomCommands")]
     [RequireContext(ContextType.Guild)]
     [RequireUserPermission(GuildPermission.ManageMessages)]
-    public class CustomCommandModule :  ModuleBase<SocketCommandContext>
+    public class CustomCommandModule : ModuleBase<SocketCommandContext>
     {
         private readonly DatabaseContext database;
         private readonly CommandService commandService;
