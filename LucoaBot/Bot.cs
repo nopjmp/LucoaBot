@@ -7,7 +7,6 @@ using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using Serilog;
 #if !DEBUG
 using Serilog.Events;
@@ -15,7 +14,6 @@ using Serilog.Filters;
 #endif
 using System;
 using System.Linq;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
@@ -25,12 +23,6 @@ namespace LucoaBot
     internal class Bot
     {
         private ILogger logger = null;
-
-        private readonly JsonSerializerSettings jss = new JsonSerializerSettings
-        {
-            NullValueHandling = NullValueHandling.Ignore,
-            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-        };
 
         internal Bot()
         {
