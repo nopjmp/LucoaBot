@@ -24,9 +24,19 @@ namespace LucoaBot.Commands
         [Summary("Returns a help message to display what commands are available.")]
         public async Task HelpAsync()
         {
-            var config = await _context.GuildConfigs
-                .Where(e => e.GuildId == Context.Guild.Id)
-                .FirstOrDefaultAsync();
+            var prefix = ".";
+
+            if (!Context.IsPrivate)
+            {
+                var config = await _context.GuildConfigs
+                    .Where(e => e.GuildId == Context.Guild.Id)
+                    .FirstOrDefaultAsync();
+
+                if (config != null)
+                {
+                    prefix = config.Prefix;
+                }
+            }
 
             var builder = new EmbedBuilder()
             {
@@ -44,7 +54,7 @@ namespace LucoaBot.Commands
                     var result = await cmd.CheckPreconditionsAsync(Context);
                     if (result.IsSuccess)
                     {
-                        stringBuilder.Append($"{config.Prefix}{cmd.Name} ");
+                        stringBuilder.Append($"{prefix}{cmd.Name} ");
                         stringBuilder.AppendJoin(" ", cmd.Parameters.Select(
                             p =>
                             {

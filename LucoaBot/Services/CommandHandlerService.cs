@@ -86,29 +86,37 @@ namespace LucoaBot.Services
             var message = socketMessage as SocketUserMessage;
             if (message == null || message.Author.IsBot) return;
 
+            var prefix = ".";
+
             var _context = new CustomCommandContext(client, message);
 
-            var config = await context.GuildConfigs
-                .Where(e => e.GuildId == _context.Guild.Id)
-                .FirstOrDefaultAsync();
-
-            if (config == null)
+            if (!_context.IsPrivate)
             {
-                config = new Models.GuildConfig()
-                {
-                    GuildId = _context.Guild.Id,
-                    Prefix = "."
-                };
+                var config = await context.GuildConfigs
+                    .Where(e => e.GuildId == _context.Guild.Id)
+                    .FirstOrDefaultAsync();
 
-                context.Add(config);
-                context.SaveChangesAsync().SafeFireAndForget(false);
+                if (config == null)
+                {
+                    config = new Models.GuildConfig()
+                    {
+                        GuildId = _context.Guild.Id,
+                        Prefix = "."
+                    };
+
+                    context.Add(config);
+                    context.SaveChangesAsync().SafeFireAndForget(false);
+                }
+
+                _context.Config = config;
+
+                prefix = config.Prefix;
             }
 
             int argPos = 0;
-            if (!message.HasStringPrefix(config.Prefix, ref argPos))
+            if (!message.HasStringPrefix(prefix, ref argPos))
                 return;
 
-            _context.Config = config;
             _context.ArgPos = argPos;
 
             await commands.ExecuteAsync(_context, argPos, services);
