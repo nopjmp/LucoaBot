@@ -62,7 +62,7 @@ namespace LucoaBot
             logger.LogTrace("Loading configuration...");
 
             var client = services.GetRequiredService<DiscordSocketClient>();
-            client.Ready += () =>
+            client.Connected += () =>
             {
                 // Setup Cancellation for when we disconnect.
                 userCountTokenSource = new CancellationTokenSource();
@@ -79,7 +79,8 @@ namespace LucoaBot
                         if (count != lastCount)
                         {
                             lastCount = count;
-                            await client.SetActivityAsync(new Game($"{count} users", ActivityType.Watching));
+                            if (count > 0)
+                                await client.SetActivityAsync(new Game($"{count} users", ActivityType.Watching));
                         }
                         await Task.Delay(10000);
                     }
@@ -141,8 +142,9 @@ namespace LucoaBot
                 DefaultRunMode = RunMode.Async,
             }))
             .AddSingleton<CommandHandlerService>()
-            .AddSingleton<HttpClient>()
-            .AddDbContextPool<DatabaseContext>(options => options.UseNpgsql(Environment.GetEnvironmentVariable("DATASOURCE")))
+            .AddDbContextPool<DatabaseContext>(options => options.UseNpgsql(
+                Environment.GetEnvironmentVariable("DATASOURCE"),
+                options => options.EnableRetryOnFailure(10)))
             .AddSingleton<StarboardListener>()
             .AddSingleton<TempatureListener>()
             .BuildServiceProvider();

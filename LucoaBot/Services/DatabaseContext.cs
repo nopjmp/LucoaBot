@@ -13,7 +13,7 @@ namespace LucoaBot.Services
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // PostgreSQL 10+ is required for this feature.
-            modelBuilder.ForNpgsqlUseIdentityColumns();
+            modelBuilder.UseIdentityColumns();
 
             modelBuilder
                 .Entity<CustomCommand>(

@@ -12,6 +12,6 @@ namespace LucoaBot
             new CommandResult(CommandError.Unsuccessful, reason);
 
         public static CommandResult FromSuccess(string reason) =>
-            new CommandResult(CommandError.Unsuccessful, reason);
+            new CommandResult(null, reason);
     }
 }

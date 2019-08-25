@@ -3,7 +3,9 @@ using Discord.Commands;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -178,6 +180,24 @@ namespace LucoaBot.Commands
         {
             var rng = new Random();
             await ReplyAsync($"{Context.User.Mention} rolled a {rng.Next(number) + 1}");
+        }
+
+        [Command("jumbo")]
+        [Summary("Takes an emote and makes it larger")]
+        public async Task<RuntimeResult> JumboAsync(string emote)
+        {
+            Emote emoteObj;
+            if (Emote.TryParse(emote, out emoteObj))
+            {
+                using var httpClient = new HttpClient();
+                using var response = await httpClient.GetAsync(emoteObj.Url);
+                using var contentStream = await response.Content.ReadAsStreamAsync();
+
+                await Context.Channel.SendFileAsync(contentStream, Path.GetFileName(emoteObj.Url));
+                return CommandResult.FromSuccess("");
+            }
+
+            return CommandResult.FromError("Emote must be a guild/server emote.");
         }
     }
 }

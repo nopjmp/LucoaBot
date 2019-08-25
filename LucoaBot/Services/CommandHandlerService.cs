@@ -38,20 +38,44 @@ namespace LucoaBot.Services
             client.MessageReceived += HandleCommandAsync;
         }
 
-        private async Task OnCommandExecutedAsync(Discord.Optional<CommandInfo> command, ICommandContext context, IResult result)
+        private async Task OnCommandExecutedAsync(Discord.Optional<CommandInfo> command, ICommandContext cmdContext, IResult result)
         {
-            if (result != null && !result.IsSuccess)
+            if (result != null)
             {
-                switch (result.Error)
+                if (!result.IsSuccess)
                 {
-                    case CommandError.Exception:
-                    case CommandError.UnknownCommand:
-                        return;
+                    switch (result.Error)
+                    {
+                        case CommandError.Exception:
+                            return;
+                        case CommandError.UnknownCommand:
+                            if (cmdContext is CustomCommandContext)
+                            {
+                                var customContext = cmdContext as CustomCommandContext;
+                                var _ = Task.Run(async () =>
+                                {
+                                    var commandKey = customContext.Message.Content.Substring(customContext.ArgPos).Trim().ToLowerInvariant();
+                                    var command = await context.CustomCommands
+                                        .Where(c => c.Command == commandKey)
+                                        .FirstOrDefaultAsync();
+
+                                    if (command != null)
+                                    {
+                                        // filter out @everyone and @here mentions...
+                                        var response = command.Response
+                                            .Replace("@everyone", "@\u0435veryone")
+                                            .Replace("@here", "@h\u0435re");
+                                        await customContext.Channel.SendMessageAsync(response);
+                                    }
+                                });
+                            }
+                            return;
+                    }
                 }
 
                 if (!string.IsNullOrEmpty(result.ErrorReason))
                 {
-                    await context.Channel.SendMessageAsync(result.ErrorReason);
+                    await cmdContext.Channel.SendMessageAsync(result.ErrorReason);
                 }
             }
         }
@@ -62,7 +86,7 @@ namespace LucoaBot.Services
             var message = socketMessage as SocketUserMessage;
             if (message == null || message.Author.IsBot) return;
 
-            var _context = new SocketCommandContext(client, message);
+            var _context = new CustomCommandContext(client, message);
 
             var config = await context.GuildConfigs
                 .Where(e => e.GuildId == _context.Guild.Id)
@@ -84,27 +108,10 @@ namespace LucoaBot.Services
             if (!message.HasStringPrefix(config.Prefix, ref argPos))
                 return;
 
+            _context.Config = config;
+            _context.ArgPos = argPos;
+
             await commands.ExecuteAsync(_context, argPos, services);
-
-            var _ = Task.Run(async () =>
-            {
-                var commandKey = message.Content.Substring(argPos).Trim().ToLowerInvariant();
-                if (!commands.Commands.Any(c => c.Name == commandKey || c.Aliases.Any(a => a == commandKey)))
-                {
-                    var command = await context.CustomCommands
-                        .Where(c => c.Command == commandKey)
-                        .FirstOrDefaultAsync();
-
-                    if (command != null)
-                    {
-                        // filter out @everyone and @here mentions...
-                        var response = command.Response
-                            .Replace("@everyone", "@\u0435veryone")
-                            .Replace("@here", "@h\u0435re");
-                        await _context.Channel.SendMessageAsync(response);
-                    }
-                }
-            });
         }
     }
 }
