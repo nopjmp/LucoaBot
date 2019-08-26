@@ -30,9 +30,45 @@ namespace LucoaBot.Listeners
 
         public void Initialize()
         {
+            client.MessageDeleted += Client_MessageDeleted;
+
             client.ReactionAdded += Client_ReactionAdded;
             client.ReactionRemoved += Client_ReactionRemoved;
             client.ReactionsCleared += Client_ReactionsCleared;
+        }
+
+        private async Task Client_MessageDeleted(Cacheable<IMessage, ulong> _message, ISocketMessageChannel _channel)
+        {
+            try
+            {
+                if (_channel is SocketTextChannel)
+                {
+                    var channel = _channel as SocketTextChannel;
+                    var config = await context.GuildConfigs
+                                    .Where(e => e.GuildId == channel.Guild.Id)
+                                    .FirstOrDefaultAsync();
+                    if (config != null && _channel.Id != config.StarBoardChannel.Value)
+                    {
+                        var starboardChannel = channel.Guild.GetTextChannel(config.StarBoardChannel.Value);
+                        var messageId = _message.Id.ToString();
+                        var messages = starboardChannel.GetMessagesAsync(limit: int.MaxValue).Flatten();
+
+                        var starMessage = await (from m in messages
+                                                 where m.Author.Id == client.CurrentUser.Id
+                                                      && m.Embeds.SelectMany(e => e.Fields).Any(f => f.Name == "Message ID" && f.Value == messageId)
+                                                 select m).FirstOrDefault();
+
+                        if (starMessage != null)
+                        {
+                            await starMessage.DeleteAsync();
+                        }
+                    }
+                }
+            }
+            catch(Exception e)
+            {
+                logger.LogError(e, "Exception thrown in Client_MessageDeleted");
+            }
         }
 
         private Task<IMessage> FindStarPost(SocketTextChannel starboardChannel, SocketTextChannel channel, IUserMessage message)
