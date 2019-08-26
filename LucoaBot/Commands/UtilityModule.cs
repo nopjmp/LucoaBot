@@ -38,6 +38,7 @@ namespace LucoaBot.Commands
 
         [Command("serverinfo")]
         [Summary("Returns the server's information")]
+        [RequireContext(ContextType.Guild)]
         public async Task ServerInfoAsync()
         {
             var builder = new EmbedBuilder()
@@ -78,6 +79,7 @@ namespace LucoaBot.Commands
 
         [Command("userinfo")]
         [Summary("Returns the user's information")]
+        [RequireContext(ContextType.Guild)]
         public Task UserInfoAsync(IGuildUser user = null)
         {
             if (user == null)
