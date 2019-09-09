@@ -191,15 +191,35 @@ namespace LucoaBot.Commands
             Emote emoteObj;
             if (Emote.TryParse(emote, out emoteObj))
             {
+                var emoteUri = new Uri(emoteObj.Url);
+
                 using var httpClient = new HttpClient();
-                using var response = await httpClient.GetAsync(emoteObj.Url);
+                using var response = await httpClient.GetAsync(emoteUri);
                 using var contentStream = await response.Content.ReadAsStreamAsync();
 
-                await Context.Channel.SendFileAsync(contentStream, Path.GetFileName(emoteObj.Url));
+                await Context.Channel.SendFileAsync(contentStream, Path.GetFileName(emoteUri.LocalPath));
                 return CommandResult.FromSuccess("");
             }
 
             return CommandResult.FromError("Emote must be a guild/server emote.");
+        }
+
+        [Command("avatar")]
+        [Summary("If specified, displays the user's avatar; else, displays your avatar")]
+        public async Task AvatarAsync(IUser user = null)
+        {
+            if (user == null)
+            {
+                user = Context.User;
+            }
+
+            var avatarUri = new Uri(user.GetAvatarUrl() ?? user.GetDefaultAvatarUrl());
+
+            using var httpClient = new HttpClient();
+            using var response = await httpClient.GetAsync(avatarUri);
+            using var contentStream = await response.Content.ReadAsStreamAsync();
+
+            await Context.Channel.SendFileAsync(contentStream, Path.GetFileName(avatarUri.LocalPath));
         }
     }
 }

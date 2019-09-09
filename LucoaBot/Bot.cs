@@ -53,6 +53,8 @@ namespace LucoaBot
             logger = services.GetRequiredService<ILogger<Bot>>();
             logger.LogTrace("Loading configuration...");
 
+            var cts = new CancellationTokenSource();
+
             var client = services.GetRequiredService<DiscordSocketClient>();
             client.Connected += () =>
             {
@@ -82,10 +84,9 @@ namespace LucoaBot
             };
             client.Disconnected += (_) =>
             {
-                if (userCountTokenSource != null)
+                if (!userCountTokenSource.IsCancellationRequested)
                 {
                     userCountTokenSource.Cancel();
-                    userCountTokenSource = null;
                 }
 
                 return Task.CompletedTask;
@@ -109,8 +110,19 @@ namespace LucoaBot
                 throw new ApplicationException("You need to run the migrations...");
             }
 
-            // TODO: add a condition for a service to use to kill the bot
-            await Task.Delay(-1);
+            Console.CancelKeyPress += (s, e) =>
+            {
+                e.Cancel = true;
+
+                cts.Cancel();
+            };
+
+            await Task.Delay(-1, cts.Token);
+            userCountTokenSource.Cancel();
+            userCountTokenSource = null;
+
+            await client.SetStatusAsync(UserStatus.Invisible);
+            await client.StopAsync();
         }
 
         public ServiceProvider BuildServiceProvider() => new ServiceCollection()

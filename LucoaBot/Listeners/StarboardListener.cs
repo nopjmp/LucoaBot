@@ -47,7 +47,8 @@ namespace LucoaBot.Listeners
                     var config = await context.GuildConfigs
                                     .Where(e => e.GuildId == channel.Guild.Id)
                                     .FirstOrDefaultAsync();
-                    if (config != null && _channel.Id != config.StarBoardChannel.Value)
+                    if (config != null && config.StarBoardChannel != null
+                        && config.StarBoardChannel != _channel.Id && config.StarBoardChannel != 0)
                     {
                         var starboardChannel = channel.Guild.GetTextChannel(config.StarBoardChannel.Value);
                         var messageId = _message.Id.ToString();
