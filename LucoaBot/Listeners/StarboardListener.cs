@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace LucoaBot.Listeners
 {
-    class StarboardListener
+    public class StarboardListener
     {
         private readonly ILogger<StarboardListener> logger;
         private readonly DatabaseContext context;

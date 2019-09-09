@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "LucoaBot": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "LUCOA_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

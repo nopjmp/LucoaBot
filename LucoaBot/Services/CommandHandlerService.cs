@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace LucoaBot.Services
 {
-    internal class CommandHandlerService
+    public class CommandHandlerService
     {
         private readonly IServiceProvider services;
         private readonly DiscordSocketClient client;

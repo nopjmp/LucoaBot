@@ -8,24 +8,24 @@ using System.Threading.Tasks;
 
 namespace LucoaBot.Listeners
 {
-    class TempatureListener
+    public class TemperatureListener
     {
         private readonly DiscordSocketClient client;
 
         private readonly Regex findRegex = new Regex(@"(?<=^|\s|[_*~])(-?\d*(?:\.\d+)?)\s?°?([FC])(?=$|\s|[_*~])",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        public TempatureListener(DiscordSocketClient client)
+        public TemperatureListener(DiscordSocketClient client)
         {
             this.client = client;
         }
 
         public void Initialize()
         {
-            client.MessageReceived += TempatureListenerAsync;
+            client.MessageReceived += TemperatureListenerAsync;
         }
 
-        public Task TempatureListenerAsync(SocketMessage m)
+        public Task TemperatureListenerAsync(SocketMessage m)
         {
             if (!m.Author.IsBot)
             {
