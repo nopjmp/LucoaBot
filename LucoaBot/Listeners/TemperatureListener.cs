@@ -12,8 +12,9 @@ namespace LucoaBot.Listeners
     {
         private readonly DiscordSocketClient client;
 
-        private readonly Regex findRegex = new Regex(@"(?<=^|\s|[_*~])(-?\d*(?:\.\d+)?)\s?°?([FC])(?=$|\s|[_*~])",
+        private static readonly Regex findRegex = new Regex(@"(?<=^|\s|[_*~])(-?\d*(?:\.\d+)?)\s?°?([FC])(?=$|\s|[_*~])",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex urlRegex = new Regex(@"http[^\s]+", RegexOptions.Compiled);
 
         public TemperatureListener(DiscordSocketClient client)
         {
@@ -39,7 +40,8 @@ namespace LucoaBot.Listeners
                             try
                             {
                                 var list = new List<string>();
-                                var matches = from m in findRegex.Matches(m.Content)
+                                var content = urlRegex.Replace(m.Content, "");
+                                var matches = from m in findRegex.Matches(content)
                                               where m.Groups.Count == 3
                                               select new { Quantity = double.Parse(m.Groups[1].Value), Unit = m.Groups[2].Value.ToUpper() };
 
