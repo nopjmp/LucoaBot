@@ -46,6 +46,9 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="3.0.0-preview9.19423.4" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="3.0.0-preview9.19423.4" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="3.0.0-preview9" />
+    <PackageReference Include="prometheus-net" Version="3.1.4" />
+    <PackageReference Include="Prometheus.Client" Version="3.0.2" />
+    <PackageReference Include="Prometheus.Client.MetricServer" Version="3.0.1" />
     <PackageReference Include="Serilog" Version="2.9.0-dev-01124" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="3.0.2-dev-10256" />
     <PackageReference Include="Serilog.Settings.Configuration" Version="3.1.1-dev-00209" />

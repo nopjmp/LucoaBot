@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Prometheus;
 using Serilog;
 
 namespace LucoaBot
@@ -34,11 +35,15 @@ namespace LucoaBot
                     configApp.AddJsonFile($"appsettings.json", true);
                     configApp.AddJsonFile($"appsettings.{hostContext.HostingEnvironment.EnvironmentName}.json", true);
                     configApp.AddCommandLine(args);
+
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddMemoryCache();
                     services.AddLogging();
+
+                    services.AddSingleton<IMetricServer>((_) => new MetricServer("localhost", 9091));
+
                     services.AddHostedService<ApplicationLifetimeHostedService>();
 
                     services.AddSingleton(_ => new DiscordSocketClient(new DiscordSocketConfig

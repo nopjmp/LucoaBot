@@ -3,6 +3,7 @@ using Discord.WebSocket;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Prometheus;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,6 +15,8 @@ namespace LucoaBot.Listeners
         private readonly ILogger<StarboardListener> logger;
         private readonly DatabaseContext context;
         private readonly DiscordSocketClient client;
+
+        private static readonly Counter starboardMessageCounter = Metrics.CreateCounter("discord_starboard_count", "Number of starboard posts");
 
         private readonly Emoji emoji = new Emoji("⭐");
 #if !DEBUG
@@ -155,6 +158,7 @@ namespace LucoaBot.Listeners
 
                     if (starboardMessage == null)
                     {
+                        starboardMessageCounter.Inc();
                         await starboardChannel.SendMessageAsync(embed: embedBuilder.Build());
                     }
                     else

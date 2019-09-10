@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Prometheus;
 using System;
 using System.Linq;
 using System.Threading;
@@ -18,7 +19,9 @@ namespace LucoaBot.Services
         ILogger<ApplicationLifetimeHostedService> logger;
         IConfiguration configuration;
 
-        DiscordSocketClient discordSocketClient;
+        IMetricServer metricServer;
+
+        DiscordSocketClient discordClient;
         CommandService commandService;
         CommandHandlerService commandHandlerService;
 
@@ -29,10 +32,14 @@ namespace LucoaBot.Services
 
         private CancellationTokenSource userCountTokenSource = null;
 
+        private static readonly Gauge userCounterGuage = Metrics.CreateGauge("discord_users", "currently observed discord users");
+        private static readonly Gauge latencyGuage = Metrics.CreateGauge("discord_latency", "currently observed discord users");
+
         public ApplicationLifetimeHostedService(
             IConfiguration configuration,
             ILogger<ApplicationLifetimeHostedService> logger,
-            DiscordSocketClient discordSocketClient,
+            IMetricServer metricServer,
+            DiscordSocketClient discordClient,
             CommandService commandService,
             CommandHandlerService commandHandlerService,
             StarboardListener starboardListener,
@@ -41,7 +48,8 @@ namespace LucoaBot.Services
         {
             this.configuration = configuration;
             this.logger = logger;
-            this.discordSocketClient = discordSocketClient;
+            this.metricServer = metricServer;
+            this.discordClient = discordClient;
             this.commandService = commandService;
             this.commandHandlerService = commandHandlerService;
             this.starboardListener = starboardListener;
@@ -59,7 +67,9 @@ namespace LucoaBot.Services
                 throw new ApplicationException("You need to run the migrations...");
             }
 
-            discordSocketClient.Connected += () =>
+            metricServer.Start();
+
+            discordClient.Connected += () =>
             {
                 // Setup Cancellation for when we disconnect.
                 userCountTokenSource = new CancellationTokenSource();
@@ -70,12 +80,13 @@ namespace LucoaBot.Services
                     var lastCount = -1;
                     while (true)
                     {
-                        var count = discordSocketClient.Guilds.Aggregate(0, (a, g) => a + g.MemberCount);
+                        var count = discordClient.Guilds.Aggregate(0, (a, g) => a + g.MemberCount);
                         if (count != lastCount)
                         {
+                            userCounterGuage.Set(count);
                             lastCount = count;
                             if (count > 0)
-                                await discordSocketClient.SetActivityAsync(new Game($"{count} users", ActivityType.Watching));
+                                await discordClient.SetActivityAsync(new Game($"{count} users", ActivityType.Watching));
                         }
                         await Task.Delay(10000);
                     }
@@ -84,7 +95,7 @@ namespace LucoaBot.Services
                 return Task.CompletedTask;
             };
 
-            discordSocketClient.Disconnected += (_) =>
+            discordClient.Disconnected += (_) =>
             {
                 if (!userCountTokenSource.IsCancellationRequested)
                 {
@@ -94,11 +105,17 @@ namespace LucoaBot.Services
                 return Task.CompletedTask;
             };
 
-            discordSocketClient.Log += LogAsync;
+            discordClient.LatencyUpdated += (_, val) =>
+            {
+                latencyGuage.Set(val);
+                return Task.CompletedTask;
+            };
+
+            discordClient.Log += LogAsync;
             commandService.Log += LogAsync;
 
-            await discordSocketClient.LoginAsync(TokenType.Bot, configuration["Token"]);
-            await discordSocketClient.StartAsync();
+            await discordClient.LoginAsync(TokenType.Bot, configuration["Token"]);
+            await discordClient.StartAsync();
 
             await commandHandlerService.InitializeAsync();
 
@@ -108,8 +125,16 @@ namespace LucoaBot.Services
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            await discordSocketClient.SetStatusAsync(UserStatus.Invisible);
-            await discordSocketClient.StopAsync();
+            if (userCountTokenSource != null)
+                userCountTokenSource.Cancel();
+
+            if (discordClient.ConnectionState == ConnectionState.Connected)
+            {
+                await discordClient.SetStatusAsync(UserStatus.Invisible);
+                await discordClient.StopAsync();
+            }
+
+            await metricServer.StopAsync();
         }
 
         private Task LogAsync(LogMessage msg)

@@ -1,6 +1,7 @@
 ﻿using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
+using Prometheus;
 using System;
 using System.Linq;
 using System.Reflection;
@@ -14,6 +15,10 @@ namespace LucoaBot.Services
         private readonly DiscordSocketClient client;
         private readonly CommandService commands;
         private readonly DatabaseContext context;
+
+        // this is a bit of a hack to put it in here... should move to it's own handler later
+        private static readonly Counter messageSeenCount = Metrics.CreateCounter("discord_messages_total", "Total messages seen count");
+        private static readonly Counter commandCount = Metrics.CreateCounter("discord_command_count", "Executed commands", labelNames: new[] { "result" });
 
         public CommandHandlerService(IServiceProvider services, DiscordSocketClient client, CommandService commands, DatabaseContext context)
         {
@@ -43,6 +48,10 @@ namespace LucoaBot.Services
             {
                 if (!result.IsSuccess)
                 {
+                    // Unknown errors are to be ignored for failure count
+                    if (result.Error != CommandError.UnknownCommand)
+                        commandCount.WithLabels("failure").Inc();
+
                     switch (result.Error)
                     {
                         case CommandError.Exception:
@@ -60,6 +69,7 @@ namespace LucoaBot.Services
 
                                     if (command != null)
                                     {
+                                        commandCount.WithLabels("success").Inc();
                                         // filter out @everyone and @here mentions...
                                         var response = command.Response
                                             .Replace("@everyone", "@\u0435veryone")
@@ -71,7 +81,11 @@ namespace LucoaBot.Services
                             return;
                     }
                 }
-
+                else // this is a successful command
+                {
+                    commandCount.WithLabels("success").Inc();
+                }
+                
                 if (!string.IsNullOrEmpty(result.ErrorReason))
                 {
                     await cmdContext.Channel.SendMessageAsync(result.ErrorReason);
@@ -81,6 +95,8 @@ namespace LucoaBot.Services
 
         public async Task HandleCommandAsync(SocketMessage socketMessage)
         {
+            messageSeenCount.Inc();
+
             // don't process system or bot messages
             var message = socketMessage as SocketUserMessage;
             if (message == null || message.Author.IsBot) return;
