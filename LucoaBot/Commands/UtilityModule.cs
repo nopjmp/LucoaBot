@@ -13,7 +13,7 @@ namespace LucoaBot.Commands
     [Name("Utility")]
     public class UtilityModule : ModuleBase<SocketCommandContext>
     {
-        private readonly List<GuildPermission> keyPermissions = new List<GuildPermission>()
+        private static readonly List<GuildPermission> keyPermissions = new List<GuildPermission>()
         {
             GuildPermission.KickMembers, GuildPermission.BanMembers, GuildPermission.ManageChannels,
             GuildPermission.ManageRoles, GuildPermission.ManageGuild, GuildPermission.ManageWebhooks,

@@ -57,10 +57,10 @@ namespace LucoaBot.Services
                         case CommandError.Exception:
                             return;
                         case CommandError.UnknownCommand:
-                            if (cmdContext is CustomCommandContext)
+                            if (cmdContext is CustomCommandContext) // this should always be true, TODO: figure out a better way to remove this
                             {
                                 var customContext = cmdContext as CustomCommandContext;
-                                var _ = Task.Run(async () =>
+                                Task.Run(async () =>
                                 {
                                     var commandKey = customContext.Message.Content.Substring(customContext.ArgPos).Trim().ToLowerInvariant();
                                     var command = await context.CustomCommands
@@ -76,7 +76,7 @@ namespace LucoaBot.Services
                                             .Replace("@here", "@h\u0435re");
                                         await customContext.Channel.SendMessageAsync(response);
                                     }
-                                });
+                                }).SafeFireAndForget(false);
                             }
                             return;
                     }

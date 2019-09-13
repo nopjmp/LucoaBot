@@ -30,7 +30,7 @@ namespace LucoaBot.Listeners
         {
             if (!m.Author.IsBot)
             {
-                var _ = Task.Run(async () =>
+                Task.Run(async () =>
                 {
                     var self = await m.Channel.GetUserAsync(client.CurrentUser.Id);
                     if (self is IGuildUser gSelf)
@@ -67,7 +67,7 @@ namespace LucoaBot.Listeners
                             }
                         }
                     }
-                });
+                }).SafeFireAndForget(false);
             }
 
             return Task.CompletedTask;

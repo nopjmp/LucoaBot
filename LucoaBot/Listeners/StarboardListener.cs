@@ -174,7 +174,7 @@ namespace LucoaBot.Listeners
             if (reaction.Emote.Name == emoji.Name
                 && _channel is SocketTextChannel)
             {
-                var _ = Task.Run(async () =>
+                Task.Run(async () =>
                 {
                     try
                     {
@@ -204,7 +204,7 @@ namespace LucoaBot.Listeners
                     {
                         logger.LogError(e, "Exception thrown in Client_ReactionAdded");
                     }
-                });
+                }).SafeFireAndForget(false);
             }
 
             return Task.CompletedTask;
@@ -215,7 +215,7 @@ namespace LucoaBot.Listeners
             if (reaction.Emote.Name == emoji.Name
                 && _channel is SocketTextChannel)
             {
-                var _ = Task.Run(async () =>
+                Task.Run(async () =>
                 {
                     try
                     {
@@ -248,7 +248,7 @@ namespace LucoaBot.Listeners
                     {
                         logger.LogError(e, "Exception thrown in Client_ReactionRemoved");
                     }
-                });
+                }).SafeFireAndForget(false);
             }
 
             return Task.CompletedTask;
@@ -258,7 +258,7 @@ namespace LucoaBot.Listeners
         {
             if (_channel is SocketTextChannel)
             {
-                var _ = Task.Run(async () =>
+                Task.Run(async () =>
                 {
                     try
                     {
@@ -284,7 +284,7 @@ namespace LucoaBot.Listeners
                     {
                         logger.LogError(e, "Exception thrown in Client_ReactionsCleared");
                     }
-                });
+                }).SafeFireAndForget(false);
             }
 
             return Task.CompletedTask;
