@@ -40,39 +40,44 @@ namespace LucoaBot.Listeners
             client.ReactionsCleared += Client_ReactionsCleared;
         }
 
-        private async Task Client_MessageDeleted(Cacheable<IMessage, ulong> _message, ISocketMessageChannel _channel)
+        private Task Client_MessageDeleted(Cacheable<IMessage, ulong> _message, ISocketMessageChannel _channel)
         {
-            try
+            Task.Run(async () =>
             {
-                if (_channel is SocketTextChannel)
+                try
                 {
-                    var channel = _channel as SocketTextChannel;
-                    var config = await context.GuildConfigs
-                                    .Where(e => e.GuildId == channel.Guild.Id)
-                                    .FirstOrDefaultAsync();
-                    if (config != null && config.StarBoardChannel != null
-                        && config.StarBoardChannel != _channel.Id && config.StarBoardChannel != 0)
+                    if (_channel is SocketTextChannel)
                     {
-                        var starboardChannel = channel.Guild.GetTextChannel(config.StarBoardChannel.Value);
-                        var messageId = _message.Id.ToString();
-                        var messages = starboardChannel.GetMessagesAsync(limit: int.MaxValue).Flatten();
-
-                        var starMessage = await (from m in messages
-                                                 where m.Author.Id == client.CurrentUser.Id
-                                                      && m.Embeds.SelectMany(e => e.Fields).Any(f => f.Name == "Message ID" && f.Value == messageId)
-                                                 select m).FirstOrDefault();
-
-                        if (starMessage != null)
+                        var channel = _channel as SocketTextChannel;
+                        var config = await context.GuildConfigs
+                                        .Where(e => e.GuildId == channel.Guild.Id)
+                                        .FirstOrDefaultAsync();
+                        if (config != null && config.StarBoardChannel != null
+                            && config.StarBoardChannel != _channel.Id && config.StarBoardChannel != 0)
                         {
-                            await starMessage.DeleteAsync();
+                            var starboardChannel = channel.Guild.GetTextChannel(config.StarBoardChannel.Value);
+                            var messageId = _message.Id.ToString();
+                            var messages = starboardChannel.GetMessagesAsync(limit: int.MaxValue).Flatten();
+
+                            var starMessage = await (from m in messages
+                                                     where m.Author.Id == client.CurrentUser.Id
+                                                          && m.Embeds.SelectMany(e => e.Fields).Any(f => f.Name == "Message ID" && f.Value == messageId)
+                                                     select m).FirstOrDefault();
+
+                            if (starMessage != null)
+                            {
+                                await starMessage.DeleteAsync();
+                            }
                         }
                     }
                 }
-            }
-            catch(Exception e)
-            {
-                logger.LogError(e, "Exception thrown in Client_MessageDeleted");
-            }
+                catch (Exception e)
+                {
+                    logger.LogError(e, "Exception thrown in Client_MessageDeleted");
+                }
+            }).SafeFireAndForget(false);
+
+            return Task.CompletedTask;
         }
 
         private Task<IMessage> FindStarPost(SocketTextChannel starboardChannel, SocketTextChannel channel, IUserMessage message)
