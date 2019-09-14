@@ -1,6 +1,7 @@
 ﻿using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Prometheus;
 using System;
 using System.Linq;
@@ -15,17 +16,19 @@ namespace LucoaBot.Services
         private readonly DiscordSocketClient client;
         private readonly CommandService commands;
         private readonly DatabaseContext context;
+        private readonly IMemoryCache cache;
 
         // this is a bit of a hack to put it in here... should move to it's own handler later
         private static readonly Counter messageSeenCount = Metrics.CreateCounter("discord_messages_total", "Total messages seen count");
         private static readonly Counter commandCount = Metrics.CreateCounter("discord_command_count", "Executed commands", labelNames: new[] { "result" });
 
-        public CommandHandlerService(IServiceProvider services, DiscordSocketClient client, CommandService commands, DatabaseContext context)
+        public CommandHandlerService(IServiceProvider services, DiscordSocketClient client, CommandService commands, DatabaseContext context, IMemoryCache cache)
         {
             this.services = services;
             this.client = client;
             this.commands = commands;
             this.context = context;
+            this.cache = cache;
         }
 
         public async Task InitializeAsync()
@@ -107,21 +110,27 @@ namespace LucoaBot.Services
 
             if (!_context.IsPrivate)
             {
-                var config = await context.GuildConfigs
-                    .Where(e => e.GuildId == _context.Guild.Id)
-                    .FirstOrDefaultAsync();
-
-                if (config == null)
+                // TODO: move this into a caching layer
+                var config = await cache.GetOrCreateAsync("guildconfig:" + _context.Guild.Id, async entry =>
                 {
-                    config = new Models.GuildConfig()
-                    {
-                        GuildId = _context.Guild.Id,
-                        Prefix = "."
-                    };
+                    var config = await context.GuildConfigs
+                        .Where(e => e.GuildId == _context.Guild.Id)
+                        .FirstOrDefaultAsync();
 
-                    context.Add(config);
-                    context.SaveChangesAsync().SafeFireAndForget(false);
-                }
+                    if (config == null)
+                    {
+                        config = new Models.GuildConfig()
+                        {
+                            GuildId = _context.Guild.Id,
+                            Prefix = "."
+                        };
+
+                        context.Add(config);
+                        context.SaveChangesAsync().SafeFireAndForget(false);
+                    }
+
+                    return config;
+                });
 
                 _context.Config = config;
 

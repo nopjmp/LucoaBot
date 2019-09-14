@@ -2,6 +2,7 @@
 using Discord.Commands;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,10 +14,12 @@ namespace LucoaBot.Commands
     public class AdminModule : ModuleBase<SocketCommandContext>
     {
         private readonly DatabaseContext _context;
+        private readonly IMemoryCache _cache;
 
-        public AdminModule(DatabaseContext context)
+        public AdminModule(DatabaseContext context, IMemoryCache cache)
         {
             _context = context;
+            _cache = cache;
         }
 
         [Command("prune")]
@@ -65,6 +68,8 @@ namespace LucoaBot.Commands
 
                 config.Prefix = prefix;
                 _context.SaveChangesAsync().SafeFireAndForget(false);
+
+                _cache.Set("guildconfig:" + Context.Guild.Id, config);
 
                 ReplyAsync($"{Context.User.Username}#{Context.User.Discriminator} has changed the prefix to `{prefix}`").SafeFireAndForget(false);
             }
