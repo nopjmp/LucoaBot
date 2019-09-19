@@ -262,13 +262,17 @@ namespace LucoaBot.Commands
                 data = await JsonSerializer.DeserializeAsync<XKCDData>(response);
             }
 
-            var embed = new EmbedBuilder()
-                .WithTitle($"xkcd: {data.safe_title}")
-                .WithImageUrl(data.img)
-                .WithFooter(data.alt)
-                .Build();
+            var embedBuilder = new EmbedBuilder()
+            {
+                Title = $"xkcd: {data.safe_title}",
+                ImageUrl = data.img,
+                Footer = new EmbedFooterBuilder
+                {
+                    Text = data.alt
+                }
+            };
 
-            await Context.Channel.SendMessageAsync(embed: embed);
+            await Context.Channel.SendMessageAsync(embed: embedBuilder.Build());
         }
     }
 }
