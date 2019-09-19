@@ -42,6 +42,8 @@ namespace LucoaBot
                     services.AddMemoryCache();
                     services.AddLogging();
 
+                    services.AddHttpClient();
+
                     services.AddSingleton<IMetricServer>((_) => new MetricServer("localhost", 9091));
 
                     services.AddHostedService<ApplicationLifetimeHostedService>();

@@ -6,6 +6,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace LucoaBot.Commands
@@ -13,12 +15,27 @@ namespace LucoaBot.Commands
     [Name("Utility")]
     public class UtilityModule : ModuleBase<SocketCommandContext>
     {
+        private struct XKCDData
+        {
+            public int num { get; set; }
+            public string safe_title { get; set; }
+            public string alt { get; set; }
+            public string img { get; set; }
+        }
+
         private static readonly List<GuildPermission> keyPermissions = new List<GuildPermission>()
         {
             GuildPermission.KickMembers, GuildPermission.BanMembers, GuildPermission.ManageChannels,
             GuildPermission.ManageRoles, GuildPermission.ManageGuild, GuildPermission.ManageWebhooks,
             GuildPermission.ManageNicknames, GuildPermission.MentionEveryone, GuildPermission.ManageEmojis
         };
+
+        private readonly IHttpClientFactory httpClientFactory;
+
+        public UtilityModule(IHttpClientFactory httpClientFactory)
+        {
+            this.httpClientFactory = httpClientFactory;
+        }
 
         [Command("id")]
         [Summary("Displays your Discord snowflake.")]
@@ -180,8 +197,7 @@ namespace LucoaBot.Commands
         [Summary("Generates a number between 1 and the number specified")]
         public async Task RollAsync(int number)
         {
-            var rng = new Random();
-            await ReplyAsync($"{Context.User.Mention} rolled a {rng.Next(number) + 1}");
+            await ReplyAsync($"{Context.User.Mention} rolled a {RandomNumberGenerator.GetInt32(1, number + 1)}");
         }
 
         [Command("jumbo")]
@@ -193,9 +209,9 @@ namespace LucoaBot.Commands
             {
                 var emoteUri = new Uri(emoteObj.Url);
 
-                using var httpClient = new HttpClient();
-                using var response = await httpClient.GetAsync(emoteUri);
-                using var contentStream = await response.Content.ReadAsStreamAsync();
+                var httpClient = httpClientFactory.CreateClient();
+                var response = await httpClient.GetAsync(emoteUri);
+                var contentStream = await response.Content.ReadAsStreamAsync();
 
                 await Context.Channel.SendFileAsync(contentStream, Path.GetFileName(emoteUri.LocalPath));
                 return CommandResult.FromSuccess("");
@@ -215,11 +231,44 @@ namespace LucoaBot.Commands
 
             var avatarUri = new Uri(user.GetAvatarUrl() ?? user.GetDefaultAvatarUrl());
 
-            using var httpClient = new HttpClient();
-            using var response = await httpClient.GetAsync(avatarUri);
-            using var contentStream = await response.Content.ReadAsStreamAsync();
+            var httpClient = httpClientFactory.CreateClient();
+            var response = await httpClient.GetStreamAsync(avatarUri);
 
-            await Context.Channel.SendFileAsync(contentStream, Path.GetFileName(avatarUri.LocalPath));
+            await Context.Channel.SendFileAsync(response, Path.GetFileName(avatarUri.LocalPath));
+        }
+
+        [Command("xkcd")]
+        [Summary("Fetches an xkcd comic. Random for a random id")]
+        public async Task XKCDAsync(string id = null)
+        {
+            var httpClient = httpClientFactory.CreateClient();
+
+            var response = await httpClient.GetStreamAsync("https://xkcd.com/info.0.json");
+            var data = await JsonSerializer.DeserializeAsync<XKCDData>(response);
+
+            if (id != null)
+            {
+                int num = 0;
+                if (id.StartsWith("rand"))
+                {
+                    num = RandomNumberGenerator.GetInt32(1, data.num + 1);
+                }
+                else
+                {
+                    num = int.Parse(id);
+                }
+
+                response = await httpClient.GetStreamAsync($"https://xkcd.com/{num}/info.0.json");
+                data = await JsonSerializer.DeserializeAsync<XKCDData>(response);
+            }
+
+            var embed = new EmbedBuilder()
+                .WithTitle($"xkcd: {data.safe_title}")
+                .WithImageUrl(data.img)
+                .WithFooter(data.alt)
+                .Build();
+
+            await Context.Channel.SendMessageAsync(embed: embed);
         }
     }
 }
