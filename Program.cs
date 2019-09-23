@@ -1,7 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Threading.Tasks;
-using Discord;
+﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using LucoaBot.Listeners;
@@ -13,6 +10,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Prometheus;
 using Serilog;
+using System.IO;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace LucoaBot
 {
@@ -41,8 +41,13 @@ namespace LucoaBot
                 {
                     services.AddMemoryCache();
                     services.AddLogging();
-
                     services.AddHttpClient();
+                    services.AddHttpClient("noredirect")
+                        .ConfigurePrimaryHttpMessageHandler(() =>
+                            new HttpClientHandler
+                            {
+                                AllowAutoRedirect = false
+                            });
 
                     services.AddSingleton<IMetricServer>((_) => new MetricServer("localhost", 9091));
 

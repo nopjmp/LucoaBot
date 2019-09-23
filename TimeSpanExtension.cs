@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 
 namespace LucoaBot
 {
@@ -10,6 +11,7 @@ namespace LucoaBot
         /// <param name="span">The timespan.</param>
         /// <param name="significantDigits">Significant digits to use for output.</param>
         /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static string ToHumanTimeString(this TimeSpan span, int significantDigits = 3)
         {
             var format = "G" + significantDigits;
