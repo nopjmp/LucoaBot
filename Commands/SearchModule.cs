@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace LucoaBot.Commands
 {
@@ -19,11 +20,12 @@ namespace LucoaBot.Commands
 
         [Command("google")]
         [Summary("Returns back the first result from Google.")]
-        public async Task<RuntimeResult> GoogleAsync(string arg)
+        public async Task<RuntimeResult> GoogleAsync([Remainder]string arg)
         {
+            var query = HttpUtility.UrlEncode(arg);
             var httpClient = httpClientFactory.CreateClient("noredirect");
 
-            var response = await httpClient.GetAsync($"https://www.google.com/search?q={arg}&btnI");
+            var response = await httpClient.GetAsync($"https://www.google.com/search?q={query}&btnI");
 
             if (response.StatusCode == System.Net.HttpStatusCode.Redirect && response.Headers.Location != null)
                 return CommandResult.FromSuccess(response.Headers.Location.ToString());
