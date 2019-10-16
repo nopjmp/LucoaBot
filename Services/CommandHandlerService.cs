@@ -88,7 +88,7 @@ namespace LucoaBot.Services
                 {
                     commandCount.WithLabels("success").Inc();
                 }
-                
+
                 if (!string.IsNullOrEmpty(result.ErrorReason))
                 {
                     await cmdContext.Channel.SendMessageAsync(result.ErrorReason);

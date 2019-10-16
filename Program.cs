@@ -68,6 +68,7 @@ namespace LucoaBot
                     services.AddDbContextPool<DatabaseContext>(options => options.UseNpgsql(
                         hostContext.Configuration.GetConnectionString("DefaultConnection"),
                         options => options.EnableRetryOnFailure(10)));
+                    services.AddSingleton<LogListener>();
                     services.AddSingleton<StarboardListener>();
                     services.AddSingleton<TemperatureListener>();
                 })

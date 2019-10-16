@@ -26,6 +26,7 @@ namespace LucoaBot.Services
         CommandHandlerService commandHandlerService;
 
         // TODO: make this an array of listeners...
+        LogListener logListener;
         StarboardListener starboardListener;
         TemperatureListener temperatureListener;
         DatabaseContext databaseContext;
@@ -42,7 +43,8 @@ namespace LucoaBot.Services
             DiscordSocketClient discordClient,
             CommandService commandService,
             CommandHandlerService commandHandlerService,
-            StarboardListener starboardListener,
+            LogListener logListener,
+        StarboardListener starboardListener,
             TemperatureListener temperatureListener,
             DatabaseContext databaseContext)
         {
@@ -52,6 +54,7 @@ namespace LucoaBot.Services
             this.discordClient = discordClient;
             this.commandService = commandService;
             this.commandHandlerService = commandHandlerService;
+            this.logListener = logListener;
             this.starboardListener = starboardListener;
             this.temperatureListener = temperatureListener;
             this.databaseContext = databaseContext;
@@ -119,6 +122,7 @@ namespace LucoaBot.Services
 
             await commandHandlerService.InitializeAsync();
 
+            logListener.Initialize();
             starboardListener.Initialize();
             temperatureListener.Initialize();
         }

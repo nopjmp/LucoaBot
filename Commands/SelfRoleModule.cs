@@ -56,7 +56,7 @@ namespace LucoaBot.Commands
         [Command("addrole")]
         [Alias("asar")]
         [Summary("Adds a role for self-assignment")]
-        [RequireUserPermission(GuildPermission.ManageMessages)]
+        [RequireUserPermission(GuildPermission.ManageRoles)]
         public async Task<RuntimeResult> AddRoleAsync(IRole role, string category = null)
         {
             var selfRoleCheck = await context.SelfRoles
@@ -82,7 +82,7 @@ namespace LucoaBot.Commands
         [Command("removerole")]
         [Alias("rsar")]
         [Summary("Removes a role from self assignment")]
-        [RequireUserPermission(GuildPermission.ManageMessages)]
+        [RequireUserPermission(GuildPermission.ManageRoles)]
         public async Task<RuntimeResult> RemoveRoleAsync(IRole role)
         {
             var selfRoleEntry = await context.SelfRoles

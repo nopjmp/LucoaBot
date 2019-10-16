@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Commands;
+using Discord.WebSocket;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -20,6 +21,28 @@ namespace LucoaBot.Commands
         {
             _context = context;
             _cache = cache;
+        }
+
+        [Command("logging")]
+        [Summary("Sets up the logging channel for events.")]
+        [RequireUserPermission(GuildPermission.ManageGuild)]
+        public async Task LogAsync(SocketTextChannel channel)
+        {
+            var config = await _context.GuildConfigs
+                .Where(e => e.GuildId == Context.Guild.Id)
+                .FirstOrDefaultAsync();
+
+            if (channel == null)
+            {
+                config.LogChannel = null;
+                await ReplyAsync("Log channel has been cleared.");
+            }
+            else
+            {
+                config.LogChannel = channel.Id;
+                await ReplyAsync($"Log channel set to {channel.Mention}");
+            }
+            _context.SaveChangesAsync().SafeFireAndForget(false);
         }
 
         [Command("prune")]

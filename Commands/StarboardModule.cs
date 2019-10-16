@@ -1,4 +1,5 @@
-﻿using Discord.Commands;
+﻿using Discord;
+using Discord.Commands;
 using Discord.WebSocket;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +11,7 @@ namespace LucoaBot.Commands
     // TODO: we need to add logging here and try catch around reaction processing.
     [Name("Starboard")]
     [RequireContext(ContextType.Guild)]
+    [RequireUserPermission(GuildPermission.ManageGuild)]
     public class StarboardModule : ModuleBase<SocketCommandContext>
     {
         private readonly DatabaseContext context;
