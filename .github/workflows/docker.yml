@@ -3,7 +3,7 @@ on: [push]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-16.04 # temp change until they deploy a fix by 10/18/2019
     steps:
     - uses: actions/checkout@master
     - name: Publish to Registry
