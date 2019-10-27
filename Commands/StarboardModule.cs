@@ -1,10 +1,10 @@
-﻿using Discord;
+﻿using System.Linq;
+using System.Threading.Tasks;
+using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace LucoaBot.Commands
 {
@@ -14,18 +14,18 @@ namespace LucoaBot.Commands
     [RequireUserPermission(GuildPermission.ManageGuild)]
     public class StarboardModule : ModuleBase<SocketCommandContext>
     {
-        private readonly DatabaseContext context;
+        private readonly DatabaseContext _context;
 
         public StarboardModule(DatabaseContext context)
         {
-            this.context = context;
+            _context = context;
         }
 
         [Command("starboard")]
         [Summary("Sets up the starboard")]
         public async Task SetStarboardAsync(SocketTextChannel channel = null)
         {
-            var config = await context.GuildConfigs
+            var config = await _context.GuildConfigs
                 .Where(e => e.GuildId == Context.Guild.Id)
                 .FirstOrDefaultAsync();
 
@@ -39,7 +39,7 @@ namespace LucoaBot.Commands
                 config.StarBoardChannel = channel.Id;
                 await ReplyAsync($"Starboard set to {channel.Mention}");
             }
-            context.SaveChangesAsync().SafeFireAndForget(false);
+            _context.SaveChangesAsync().SafeFireAndForget(false);
         }
     }
 }

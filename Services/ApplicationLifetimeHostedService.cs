@@ -1,4 +1,8 @@
-﻿using Discord;
+﻿using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using LucoaBot.Listeners;
@@ -7,34 +11,30 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Prometheus;
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace LucoaBot.Services
 {
     public class ApplicationLifetimeHostedService : IHostedService
     {
-        ILogger<ApplicationLifetimeHostedService> logger;
-        IConfiguration configuration;
+        private readonly ILogger<ApplicationLifetimeHostedService> _logger;
+        private readonly IConfiguration _configuration;
 
-        IMetricServer metricServer;
+        private readonly IMetricServer _metricServer;
 
-        DiscordSocketClient discordClient;
-        CommandService commandService;
-        CommandHandlerService commandHandlerService;
+        private readonly DiscordSocketClient _discordClient;
+        private readonly CommandService _commandService;
+        private readonly CommandHandlerService _commandHandlerService;
 
         // TODO: make this an array of listeners...
-        LogListener logListener;
-        StarboardListener starboardListener;
-        TemperatureListener temperatureListener;
-        DatabaseContext databaseContext;
+        private readonly LogListener _logListener;
+        private readonly StarboardListener _starboardListener;
+        private readonly TemperatureListener _temperatureListener;
+        private readonly DatabaseContext _databaseContext;
 
-        private CancellationTokenSource userCountTokenSource = null;
+        private CancellationTokenSource _userCountTokenSource;
 
-        private static readonly Gauge userCounterGuage = Metrics.CreateGauge("discord_users", "currently observed discord users");
-        private static readonly Gauge latencyGuage = Metrics.CreateGauge("discord_latency", "currently observed discord users");
+        private static readonly Gauge UserCounterGauge = Metrics.CreateGauge("discord_users", "currently observed discord users");
+        private static readonly Gauge LatencyGauge = Metrics.CreateGauge("discord_latency", "currently observed discord users");
 
         public ApplicationLifetimeHostedService(
             IConfiguration configuration,
@@ -48,125 +48,119 @@ namespace LucoaBot.Services
             TemperatureListener temperatureListener,
             DatabaseContext databaseContext)
         {
-            this.configuration = configuration;
-            this.logger = logger;
-            this.metricServer = metricServer;
-            this.discordClient = discordClient;
-            this.commandService = commandService;
-            this.commandHandlerService = commandHandlerService;
-            this.logListener = logListener;
-            this.starboardListener = starboardListener;
-            this.temperatureListener = temperatureListener;
-            this.databaseContext = databaseContext;
+            _configuration = configuration;
+            _logger = logger;
+            _metricServer = metricServer;
+            _discordClient = discordClient;
+            _commandService = commandService;
+            _commandHandlerService = commandHandlerService;
+            _logListener = logListener;
+            _starboardListener = starboardListener;
+            _temperatureListener = temperatureListener;
+            _databaseContext = databaseContext;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            logger.LogInformation("Starting up application.");
+            _logger.LogInformation("Starting up application.");
 
             // warm database pool and check migrations
-            if (databaseContext.Database.GetPendingMigrations().Count() > 0)
+            if (_databaseContext.Database.GetPendingMigrations().Any())
             {
                 throw new ApplicationException("You need to run the migrations...");
             }
 
-            metricServer.Start();
+            _metricServer.Start();
 
-            discordClient.Connected += () =>
+            _discordClient.Connected += () =>
             {
                 // Setup Cancellation for when we disconnect.
-                userCountTokenSource = new CancellationTokenSource();
-                var cancellationToken = userCountTokenSource.Token;
+                _userCountTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                var userCountToken = _userCountTokenSource.Token;
 
-                var userCountTask = Task.Run(async () =>
+                Task.Run(async () =>
                 {
                     var lastCount = -1;
                     while (true)
                     {
-                        var count = discordClient.Guilds.Aggregate(0, (a, g) => a + g.MemberCount);
+                        var count = _discordClient.Guilds.Aggregate(0, (a, g) => a + g.MemberCount);
                         if (count != lastCount)
                         {
-                            userCounterGuage.Set(count);
+                            UserCounterGauge.Set(count);
                             lastCount = count;
                             if (count > 0)
-                                await discordClient.SetActivityAsync(new Game($"{count} users", ActivityType.Watching));
+                                await _discordClient.SetActivityAsync(new Game($"{count} users", ActivityType.Watching));
                         }
-                        await Task.Delay(10000);
+                        await Task.Delay(10000, userCountToken);
                     }
-                }, cancellationToken);
+                }, userCountToken);
 
                 return Task.CompletedTask;
             };
 
-            discordClient.Disconnected += (_) =>
+            _discordClient.Disconnected += _ =>
             {
-                if (!userCountTokenSource.IsCancellationRequested)
+                if (_userCountTokenSource != null)
                 {
-                    userCountTokenSource.Cancel();
+                    _userCountTokenSource.Cancel();
+                    _userCountTokenSource.Dispose();
+                    _userCountTokenSource = null;
                 }
 
                 return Task.CompletedTask;
             };
 
-            discordClient.LatencyUpdated += (_, val) =>
+            _discordClient.LatencyUpdated += (_, val) =>
             {
-                latencyGuage.Set(val);
+                LatencyGauge.Set(val);
                 return Task.CompletedTask;
             };
 
-            discordClient.Log += LogAsync;
-            commandService.Log += LogAsync;
+            _discordClient.Log += LogAsync;
+            _commandService.Log += LogAsync;
 
-            await discordClient.LoginAsync(TokenType.Bot, configuration["Token"]);
-            await discordClient.StartAsync();
+            await _discordClient.LoginAsync(TokenType.Bot, _configuration["Token"]);
+            await _discordClient.StartAsync();
 
-            await commandHandlerService.InitializeAsync();
+            await _commandHandlerService.InitializeAsync();
 
-            logListener.Initialize();
-            starboardListener.Initialize();
-            temperatureListener.Initialize();
+            _logListener.Initialize();
+            _starboardListener.Initialize();
+            _temperatureListener.Initialize();
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            if (userCountTokenSource != null)
-                userCountTokenSource.Cancel();
-
-            if (discordClient.ConnectionState == ConnectionState.Connected)
+            if (_userCountTokenSource != null)
             {
-                await discordClient.SetStatusAsync(UserStatus.Invisible);
-                await discordClient.StopAsync();
+                _userCountTokenSource.Cancel();
+                _userCountTokenSource.Dispose();
+                _userCountTokenSource = null;
             }
 
-            await metricServer.StopAsync();
+            if (_discordClient.ConnectionState == ConnectionState.Connected)
+            {
+                await _discordClient.SetStatusAsync(UserStatus.Invisible);
+                await _discordClient.StopAsync();
+            }
+
+            await _metricServer.StopAsync();
         }
 
         private Task LogAsync(LogMessage msg)
         {
-            LogLevel logLevel = LogLevel.None;
-            switch (msg.Severity)
+            var logLevel = msg.Severity switch
             {
-                case LogSeverity.Critical:
-                    logLevel = LogLevel.Critical;
-                    break;
-                case LogSeverity.Error:
-                    logLevel = LogLevel.Error;
-                    break;
-                case LogSeverity.Warning:
-                    logLevel = LogLevel.Warning;
-                    break;
-                case LogSeverity.Info:
-                    logLevel = LogLevel.Information;
-                    break;
-                case LogSeverity.Verbose:
-                    logLevel = LogLevel.Trace;
-                    break;
-                case LogSeverity.Debug:
-                    logLevel = LogLevel.Debug;
-                    break;
-            }
-            // TODO: source?
-            logger.Log(logLevel, msg.Exception, msg.Message);
+                LogSeverity.Critical => LogLevel.Critical,
+                LogSeverity.Error => LogLevel.Error,
+                LogSeverity.Warning => LogLevel.Warning,
+                LogSeverity.Info => LogLevel.Information,
+                LogSeverity.Verbose => LogLevel.Trace,
+                LogSeverity.Debug => LogLevel.Debug,
+                _ => LogLevel.None
+            };
+            // Note: possibly should implement source
+            _logger.Log(logLevel, msg.Exception, msg.Message);
 
             return Task.CompletedTask;
         }

@@ -1,30 +1,28 @@
-﻿using Discord.WebSocket;
+﻿using System.Linq;
+using System.Threading.Tasks;
+using Discord.WebSocket;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace LucoaBot.Listeners
 {
     public class LogListener
     {
-        private readonly ILogger<LogListener> logger;
-        private readonly DatabaseContext context;
-        private readonly DiscordSocketClient client;
+        private readonly DatabaseContext _context;
+        private readonly DiscordSocketClient _client;
 
         public LogListener(ILogger<LogListener> logger, DatabaseContext context, DiscordSocketClient client)
         {
-            this.logger = logger;
-            this.context = context;
-            this.client = client;
+            _context = context;
+            _client = client;
         }
 
         public void Initialize()
         {
             //client.MessageDeleted += Client_MessageDeleted;
-            client.UserJoined += Client_UserJoined;
-            client.UserLeft += Client_UserLeft;
+            _client.UserJoined += Client_UserJoined;
+            _client.UserLeft += Client_UserLeft;
         }
 
         private Task Client_UserJoined(SocketGuildUser user)
@@ -49,7 +47,7 @@ namespace LucoaBot.Listeners
 
         private async Task UserMembershipUpdate(SocketGuildUser user, bool joined)
         {
-            var config = await context.GuildConfigs
+            var config = await _context.GuildConfigs
                 .Where(e => e.GuildId == user.Guild.Id)
                 .FirstOrDefaultAsync();
 
@@ -57,7 +55,9 @@ namespace LucoaBot.Listeners
             {
                 var channel = user.Guild.GetTextChannel(config.LogChannel.Value);
                 var update = joined ? "joined" : "left";
-                await channel?.SendMessageAsync($"{user.Username}#{user.Discriminator} with id `{user.Id}` has {update} the server.");
+                if (channel != null)
+                    await channel.SendMessageAsync(
+                        $"{user.Username}#{user.Discriminator} with id `{user.Id}` has {update} the server.");
             }
         }
     }

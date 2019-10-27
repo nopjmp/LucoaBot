@@ -56,16 +56,9 @@ namespace LucoaBot.Commands
                     {
                         stringBuilder.Append($"{prefix}{cmd.Name} ");
                         stringBuilder.AppendJoin(" ", cmd.Parameters.Select(
-                            p =>
-                            {
-                                if (p.IsOptional)
-                                    return $"[{p.Name}]";
-                                return p.Name;
-                            }));
+                            p => p.IsOptional ? $"[{p.Name}]" : p.Name));
                         if (!string.IsNullOrWhiteSpace(cmd.Summary))
-                        {
                             stringBuilder.Append($" - {cmd.Summary}");
-                        }
                         stringBuilder.Append("\n");
                     }
                 }

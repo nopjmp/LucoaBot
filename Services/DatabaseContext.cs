@@ -1,18 +1,19 @@
-﻿using LucoaBot.Models;
+﻿using System.Diagnostics.CodeAnalysis;
+using LucoaBot.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace LucoaBot.Services
 {
+    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
     public class DatabaseContext : DbContext
     {
         public DatabaseContext(DbContextOptions options) : base(options)
         {
-
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // PostgreSQL 10+ is required for this feature.
+            // Postgres 10+ is required for this feature.
             modelBuilder.UseIdentityColumns();
 
             modelBuilder

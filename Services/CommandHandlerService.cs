@@ -1,34 +1,38 @@
-﻿using Discord.Commands;
-using Discord.WebSocket;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
-using Prometheus;
-using System;
+﻿using System;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Discord;
+using Discord.Commands;
+using Discord.WebSocket;
+using LucoaBot.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using Prometheus;
 
 namespace LucoaBot.Services
 {
     public class CommandHandlerService
     {
-        private readonly IServiceProvider services;
-        private readonly DiscordSocketClient client;
-        private readonly CommandService commands;
-        private readonly DatabaseContext context;
-        private readonly IMemoryCache cache;
+        private readonly IServiceProvider _services;
+        private readonly DiscordSocketClient _client;
+        private readonly CommandService _commands;
+        private readonly DatabaseContext _context;
+        private readonly IMemoryCache _cache;
 
         // this is a bit of a hack to put it in here... should move to it's own handler later
-        private static readonly Counter messageSeenCount = Metrics.CreateCounter("discord_messages_total", "Total messages seen count");
-        private static readonly Counter commandCount = Metrics.CreateCounter("discord_command_count", "Executed commands", labelNames: new[] { "result" });
+        private static readonly Counter MessageSeenCount =
+            Metrics.CreateCounter("discord_messages_total", "Total messages seen count");
+        private static readonly Counter CommandCount =
+            Metrics.CreateCounter("discord_command_count", "Executed commands", labelNames: new[] {"result"});
 
         public CommandHandlerService(IServiceProvider services, DiscordSocketClient client, CommandService commands, DatabaseContext context, IMemoryCache cache)
         {
-            this.services = services;
-            this.client = client;
-            this.commands = commands;
-            this.context = context;
-            this.cache = cache;
+            _services = services;
+            _client = client;
+            _commands = commands;
+            _context = context;
+            _cache = cache;
         }
 
         public async Task InitializeAsync()
@@ -36,69 +40,71 @@ namespace LucoaBot.Services
             // Pass the service provider to the second parameter of
             // AddModulesAsync to inject dependencies to all modules 
             // that may require them.
-            await commands.AddModulesAsync(
-                assembly: Assembly.GetEntryAssembly(),
-                services: services);
+            await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
 
-            commands.CommandExecuted += OnCommandExecutedAsync;
-
-            client.MessageReceived += HandleCommandAsync;
+            _commands.CommandExecuted += OnCommandExecutedAsync;
+            _client.MessageReceived += HandleCommandAsync;
         }
 
-        private async Task OnCommandExecutedAsync(Discord.Optional<CommandInfo> command, ICommandContext cmdContext, IResult result)
+        private async Task OnCommandExecutedAsync(Optional<CommandInfo> command, ICommandContext cmdContext, IResult result)
         {
-            if (result != null)
+            if (result == null) return;
+            
+            if (!result.IsSuccess)
             {
-                if (!result.IsSuccess)
+                // Unknown errors are to be ignored for failure count
+                if (result.Error != CommandError.UnknownCommand)
+                    CommandCount.WithLabels("failure").Inc();
+
+                switch (result.Error)
                 {
-                    // Unknown errors are to be ignored for failure count
-                    if (result.Error != CommandError.UnknownCommand)
-                        commandCount.WithLabels("failure").Inc();
-
-                    switch (result.Error)
+                    case CommandError.Exception:
+                        return;
+                    case CommandError.UnknownCommand:
                     {
-                        case CommandError.Exception:
-                            return;
-                        case CommandError.UnknownCommand:
-                            if (cmdContext is CustomCommandContext) // this should always be true, TODO: figure out a better way to remove this
+                        if (cmdContext is CustomCommandContext
+                        ) // this should always be true, TODO: figure out a better way to remove this
+                        {
+                            var customContext = cmdContext as CustomCommandContext;
+                            Task.Run(async () =>
                             {
-                                var customContext = cmdContext as CustomCommandContext;
-                                Task.Run(async () =>
-                                {
-                                    var commandKey = customContext.Message.Content.Substring(customContext.ArgPos).Trim().ToLowerInvariant();
-                                    var command = await context.CustomCommands
-                                        .Where(c => c.Command == commandKey)
-                                        .FirstOrDefaultAsync();
+                                var commandKey = customContext.Message.Content.Substring(customContext.ArgPos).Trim()
+                                    .ToLowerInvariant();
+                                var customCommand = await _context.CustomCommands
+                                    .Where(c => c.Command == commandKey)
+                                    .FirstOrDefaultAsync();
 
-                                    if (command != null)
-                                    {
-                                        commandCount.WithLabels("success").Inc();
-                                        // filter out @everyone and @here mentions...
-                                        var response = command.Response
-                                            .Replace("@everyone", "@\u0435veryone")
-                                            .Replace("@here", "@h\u0435re");
-                                        await customContext.Channel.SendMessageAsync(response);
-                                    }
-                                }).SafeFireAndForget(false);
-                            }
-                            return;
+                                if (customCommand != null)
+                                {
+                                    CommandCount.WithLabels("success").Inc();
+                                    // filter out @everyone and @here mentions...
+                                    var response = customCommand.Response
+                                        // ReSharper disable once StringLiteralTypo
+                                        .Replace("@everyone", "@\u0435veryone")
+                                        .Replace("@here", "@h\u0435re");
+                                    await customContext.Channel.SendMessageAsync(response);
+                                }
+                            }).SafeFireAndForget(false);
+                        }
+
+                        return;
                     }
                 }
-                else // this is a successful command
-                {
-                    commandCount.WithLabels("success").Inc();
-                }
+            }
+            else // this is a successful command
+            {
+                CommandCount.WithLabels("success").Inc();
+            }
 
-                if (!string.IsNullOrEmpty(result.ErrorReason))
-                {
-                    await cmdContext.Channel.SendMessageAsync(result.ErrorReason);
-                }
+            if (!string.IsNullOrEmpty(result.ErrorReason))
+            {
+                await cmdContext.Channel.SendMessageAsync(result.ErrorReason);
             }
         }
 
         public async Task HandleCommandAsync(SocketMessage socketMessage)
         {
-            messageSeenCount.Inc();
+            MessageSeenCount.Inc();
 
             // don't process system or bot messages
             var message = socketMessage as SocketUserMessage;
@@ -106,44 +112,42 @@ namespace LucoaBot.Services
 
             var prefix = ".";
 
-            var _context = new CustomCommandContext(client, message);
+            var context = new CustomCommandContext(_client, message);
 
-            if (!_context.IsPrivate)
+            if (!context.IsPrivate)
             {
                 // TODO: move this into a caching layer
-                var config = await cache.GetOrCreateAsync("guildconfig:" + _context.Guild.Id, async entry =>
+                var config = await _cache.GetOrCreateAsync("guildconfig:" + context.Guild.Id, async entry =>
                 {
-                    var config = await context.GuildConfigs
-                        .Where(e => e.GuildId == _context.Guild.Id)
+                    var guildConfig = await _context.GuildConfigs
+                        .Where(e => e.GuildId == context.Guild.Id)
                         .FirstOrDefaultAsync();
 
-                    if (config == null)
+                    if (guildConfig == null)
                     {
-                        config = new Models.GuildConfig()
+                        guildConfig = new GuildConfig
                         {
-                            GuildId = _context.Guild.Id,
+                            GuildId = context.Guild.Id,
                             Prefix = "."
                         };
 
-                        context.Add(config);
-                        context.SaveChangesAsync().SafeFireAndForget(false);
+                        _context.Add(guildConfig);
+                        _context.SaveChangesAsync().SafeFireAndForget(false);
                     }
 
-                    return config;
+                    return guildConfig;
                 });
-
-                _context.Config = config;
 
                 prefix = config.Prefix;
             }
 
-            int argPos = 0;
+            var argPos = 0;
             if (!message.HasStringPrefix(prefix, ref argPos))
                 return;
 
-            _context.ArgPos = argPos;
+            context.ArgPos = argPos;
 
-            await commands.ExecuteAsync(_context, argPos, services);
+            await _commands.ExecuteAsync(context, argPos, _services);
         }
     }
 }

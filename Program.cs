@@ -16,23 +16,24 @@ using System.Threading.Tasks;
 
 namespace LucoaBot
 {
-    class Program
+    static class Program
     {
-        private static readonly string PREFIX = "LUCOA_";
+        private const string Prefix = "LUCOA_";
+
         public static async Task Main(string[] args)
         {
             IHost host = new HostBuilder()
                 .ConfigureHostConfiguration(configHost =>
                 {
                     configHost.SetBasePath(Directory.GetCurrentDirectory());
-                    configHost.AddEnvironmentVariables(prefix: PREFIX);
+                    configHost.AddEnvironmentVariables(prefix: Prefix);
                     configHost.AddCommandLine(args);
                 })
                 .ConfigureAppConfiguration((hostContext, configApp) =>
                 {
                     configApp.SetBasePath(Directory.GetCurrentDirectory());
-                    configApp.AddEnvironmentVariables(prefix: PREFIX);
-                    configApp.AddJsonFile($"appsettings.json", true);
+                    configApp.AddEnvironmentVariables(prefix: Prefix);
+                    configApp.AddJsonFile("appsettings.json", true);
                     configApp.AddJsonFile($"appsettings.{hostContext.HostingEnvironment.EnvironmentName}.json", true);
                     configApp.AddCommandLine(args);
 
@@ -67,7 +68,7 @@ namespace LucoaBot
                     services.AddSingleton<CommandHandlerService>();
                     services.AddDbContextPool<DatabaseContext>(options => options.UseNpgsql(
                         hostContext.Configuration.GetConnectionString("DefaultConnection"),
-                        options => options.EnableRetryOnFailure(10)));
+                        optionsBuilder => optionsBuilder.EnableRetryOnFailure(10)));
                     services.AddSingleton<LogListener>();
                     services.AddSingleton<StarboardListener>();
                     services.AddSingleton<TemperatureListener>();

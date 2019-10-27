@@ -1,7 +1,8 @@
-﻿using Discord.Commands;
+﻿using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web;
+using Discord.Commands;
 
 namespace LucoaBot.Commands
 {
@@ -9,10 +10,10 @@ namespace LucoaBot.Commands
     [Group("search")]
     public class SearchModule : ModuleBase<SocketCommandContext>
     {
-        private readonly IHttpClientFactory httpClientFactory;
+        private readonly IHttpClientFactory _httpClientFactory;
         public SearchModule(IHttpClientFactory httpClientFactory)
         {
-            this.httpClientFactory = httpClientFactory;
+            _httpClientFactory = httpClientFactory;
         }
 
         [Command("google")]
@@ -20,14 +21,13 @@ namespace LucoaBot.Commands
         public async Task<RuntimeResult> GoogleAsync([Remainder]string arg)
         {
             var query = HttpUtility.UrlEncode(arg);
-            var httpClient = httpClientFactory.CreateClient("noredirect");
+            var httpClient = _httpClientFactory.CreateClient("noredirect");
 
             var response = await httpClient.GetAsync($"https://www.google.com/search?q={query}&btnI");
 
-            if (response.StatusCode == System.Net.HttpStatusCode.Redirect && response.Headers.Location != null)
+            if (response.StatusCode == HttpStatusCode.Redirect && response.Headers.Location != null)
                 return CommandResult.FromSuccess(response.Headers.Location.ToString());
-            else
-                return CommandResult.FromError("Google did not return a valid response.");
+            return CommandResult.FromError("Google did not return a valid response.");
         }
     }
 }

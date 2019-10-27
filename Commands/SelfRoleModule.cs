@@ -1,11 +1,10 @@
-﻿using Discord;
+﻿using System.Linq;
+using System.Threading.Tasks;
+using Discord;
 using Discord.Commands;
 using LucoaBot.Models;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace LucoaBot.Commands
 {
@@ -13,10 +12,10 @@ namespace LucoaBot.Commands
     [RequireContext(ContextType.Guild)]
     public class SelfRoleModule : ModuleBase<SocketCommandContext>
     {
-        private readonly DatabaseContext context;
+        private readonly DatabaseContext _context;
         public SelfRoleModule(DatabaseContext context)
         {
-            this.context = context;
+            _context = context;
         }
 
         [Command("roles")]
@@ -24,19 +23,23 @@ namespace LucoaBot.Commands
         [Summary("Lists self assignable roles.")]
         public async Task ListRolesAsync() //(bool textOnly = false)
         {
-            var selfRoles = (await context.SelfRoles
+            var selfRoles = (await _context.SelfRoles
                 .Where(r => r.GuildId == Context.Guild.Id)
                 .ToListAsync())
                 .GroupBy(r => r.Category ?? "default")
                 .OrderBy(group => group.Key);
 
-            var embedBuilder = new EmbedBuilder()
+            var embedBuilder = new EmbedBuilder
             {
                 Title = "Self Assignable Roles"
             };
             foreach (var group in selfRoles)
             {
-                embedBuilder.AddField(group.Key, string.Join(" ", group.Select(r => Context.Guild.GetRole(r.RoleId).Mention)), true);
+                embedBuilder.AddField(group.Key,
+                    string.Join(" ",
+                        group.Select(r => Context.Guild.GetRole(r.RoleId)
+                            .Mention)),
+                    true);
             }
 
             // sort default to the front
@@ -59,22 +62,22 @@ namespace LucoaBot.Commands
         [RequireUserPermission(GuildPermission.ManageRoles)]
         public async Task<RuntimeResult> AddRoleAsync(IRole role, string category = null)
         {
-            var selfRoleCheck = await context.SelfRoles
+            var selfRoleCheck = await _context.SelfRoles
                 .Where(r => r.GuildId == Context.Guild.Id && r.RoleId == role.Id)
                 .AnyAsync();
 
             if (selfRoleCheck)
                 return CommandResult.FromError($"**{role.Name}** is already a self assignable role.");
 
-            var selfRoleEntry = new SelfRole()
+            var selfRoleEntry = new SelfRole
             {
                 Category = category,
                 GuildId = Context.Guild.Id,
-                RoleId = role.Id,
+                RoleId = role.Id
             };
 
-            context.Add(selfRoleEntry);
-            await context.SaveChangesAsync();
+            _context.Add(selfRoleEntry);
+            await _context.SaveChangesAsync();
 
             return CommandResult.FromSuccess($"**{role.Name}** is now self assignable in category {category ?? "default"}.");
         }
@@ -85,19 +88,18 @@ namespace LucoaBot.Commands
         [RequireUserPermission(GuildPermission.ManageRoles)]
         public async Task<RuntimeResult> RemoveRoleAsync(IRole role)
         {
-            var selfRoleEntry = await context.SelfRoles
+            var selfRoleEntry = await _context.SelfRoles
                 .Where(r => r.GuildId == Context.Guild.Id && r.RoleId == role.Id)
                 .FirstOrDefaultAsync();
 
-            if (selfRoleEntry != null)
-            {
-                context.SelfRoles.Remove(selfRoleEntry);
-                await context.SaveChangesAsync();
+            if (selfRoleEntry == null)
+                return CommandResult.FromError($"**{role.Name}** not found as a self-assignable role on this server.");
+            
+            _context.SelfRoles.Remove(selfRoleEntry);
+            await _context.SaveChangesAsync();
 
-                return CommandResult.FromSuccess($"**{role.Name}** is no longer self assignable.");
-            }
+            return CommandResult.FromSuccess($"**{role.Name}** is no longer self assignable.");
 
-            return CommandResult.FromError($"**{role.Name}** not found as a self-assignable role on this server.");
         }
 
         [Command("iam")]
@@ -107,33 +109,32 @@ namespace LucoaBot.Commands
         {
             var guildUser = Context.User as IGuildUser;
             if (guildUser == null)
-                return CommandResult.FromError($"Secret easter egg, please message the bot owner!!! 🤕");
+                return CommandResult.FromError("Secret easter egg, please message the bot owner!!! 🤕");
 
             if (guildUser.RoleIds.Contains(role.Id))
                 return CommandResult.FromError($"{Context.User.Mention}... You already have **{role.Name}**.");
 
-            var selfRoleEntry = await context.SelfRoles
+            var selfRoleEntry = await _context.SelfRoles
                 .Where(x => x.GuildId == Context.Guild.Id && x.RoleId == role.Id)
                 .FirstOrDefaultAsync();
 
-            if (selfRoleEntry != null)
+            if (selfRoleEntry == null)
+                return CommandResult.FromError($"**{role.Name}** is not a self-assignable role.");
+            
+            if (selfRoleEntry.Category != null && selfRoleEntry.Category != "default")
             {
-                if (selfRoleEntry.Category != null && selfRoleEntry.Category != "default")
-                {
-                    var removeList = await context.SelfRoles
-                        .Where(r => r.GuildId == Context.Guild.Id && r.Category == selfRoleEntry.Category && guildUser.RoleIds.Contains(r.RoleId))
-                        .Select(r => Context.Guild.GetRole(r.RoleId))
-                        .ToListAsync();
+                var removeList = await _context.SelfRoles
+                    .Where(r => r.GuildId == Context.Guild.Id && r.Category == selfRoleEntry.Category && guildUser.RoleIds.Contains(r.RoleId))
+                    .Select(r => Context.Guild.GetRole(r.RoleId))
+                    .ToListAsync();
 
-                    if (removeList.Any())
-                        await guildUser.RemoveRolesAsync(removeList);
-                }
-
-                await guildUser.AddRoleAsync(role);
-                return CommandResult.FromSuccess($"{Context.User.Mention} now has the role **{role.Name}**");
+                if (removeList.Any())
+                    await guildUser.RemoveRolesAsync(removeList);
             }
 
-            return CommandResult.FromError($"**{role.Name}** is not a self-assignable role.");
+            await guildUser.AddRoleAsync(role);
+            return CommandResult.FromSuccess($"{Context.User.Mention} now has the role **{role.Name}**");
+
         }
 
         [Command("iamnot")]
@@ -143,23 +144,21 @@ namespace LucoaBot.Commands
         {
             var guildUser = Context.User as IGuildUser;
             if (guildUser == null)
-                return CommandResult.FromError($"Secret easter egg, please message the bot owner!!! 🤕");
+                return CommandResult.FromError("Secret easter egg, please message the bot owner!!! 🤕");
 
             if (!guildUser.RoleIds.Contains(role.Id))
                 return CommandResult.FromError($"{Context.User.Mention}... You do not have **{role.Name}**.");
 
-            var selfRoleExists = await context.SelfRoles
+            var selfRoleExists = await _context.SelfRoles
                 .Where(x => x.GuildId == Context.Guild.Id && x.RoleId == role.Id)
                 .AnyAsync();
 
-            if (selfRoleExists)
-            {
-                await guildUser.RemoveRoleAsync(role);
+            if (!selfRoleExists) return CommandResult.FromError($"**{role.Name}** is not a self-assignable role.");
+            
+            await guildUser.RemoveRoleAsync(role);
 
-                return CommandResult.FromSuccess($"{Context.User.Mention} no longer has **{role.Name}**");
-            }
+            return CommandResult.FromSuccess($"{Context.User.Mention} no longer has **{role.Name}**");
 
-            return CommandResult.FromError($"**{role.Name}** is not a self-assignable role.");
         }
     }
 }

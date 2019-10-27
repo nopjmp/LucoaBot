@@ -1,20 +1,23 @@
-﻿using Discord;
-using Discord.Commands;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Discord;
+using Discord.Commands;
 
 namespace LucoaBot.Commands
 {
     [Name("Utility")]
     public class UtilityModule : ModuleBase<SocketCommandContext>
     {
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
         private struct XKCDData
         {
             public int num { get; set; }
@@ -23,18 +26,18 @@ namespace LucoaBot.Commands
             public string img { get; set; }
         }
 
-        private static readonly List<GuildPermission> keyPermissions = new List<GuildPermission>()
+        private static readonly List<GuildPermission> KeyPermissions = new List<GuildPermission>
         {
             GuildPermission.KickMembers, GuildPermission.BanMembers, GuildPermission.ManageChannels,
             GuildPermission.ManageRoles, GuildPermission.ManageGuild, GuildPermission.ManageWebhooks,
             GuildPermission.ManageNicknames, GuildPermission.MentionEveryone, GuildPermission.ManageEmojis
         };
 
-        private readonly IHttpClientFactory httpClientFactory;
+        private readonly IHttpClientFactory _httpClientFactory;
 
         public UtilityModule(IHttpClientFactory httpClientFactory)
         {
-            this.httpClientFactory = httpClientFactory;
+            _httpClientFactory = httpClientFactory;
         }
 
         [Command("id")]
@@ -58,9 +61,9 @@ namespace LucoaBot.Commands
         [RequireContext(ContextType.Guild)]
         public async Task ServerInfoAsync()
         {
-            var builder = new EmbedBuilder()
+            var builder = new EmbedBuilder
             {
-                Author = new EmbedAuthorBuilder()
+                Author = new EmbedAuthorBuilder
                 {
                     Name = $"{Context.Guild.Owner.Username}#{Context.Guild.Owner.Discriminator}",
                     IconUrl = Context.Guild.Owner.GetAvatarUrl()
@@ -72,7 +75,7 @@ namespace LucoaBot.Commands
 
             var regions = await Context.Guild.GetVoiceRegionsAsync();
 
-            var fields = new Dictionary<string, string>()
+            var fields = new Dictionary<string, string>
             {
                 { "Id", Context.Guild.Id.ToString() },
                 { "Region", regions.Where(e => e.Id == Context.Guild.VoiceRegionId)
@@ -90,7 +93,7 @@ namespace LucoaBot.Commands
                 { "Created At", Context.Guild.CreatedAt.ToString("r") }
             };
 
-            builder.WithFields(fields.Select(e => new EmbedFieldBuilder() { Name = e.Key, Value = e.Value, IsInline = true }));
+            builder.WithFields(fields.Select(e => new EmbedFieldBuilder { Name = e.Key, Value = e.Value, IsInline = true }));
             ReplyAsync("", false, builder.Build()).SafeFireAndForget(false);
         }
 
@@ -104,36 +107,30 @@ namespace LucoaBot.Commands
                 user = Context.Guild.GetUser(Context.User.Id);
             }
 
-            var color = new Color(67, 181, 129);
-            switch (user.Status)
+            var color = user.Status switch
             {
-                case UserStatus.Idle:
-                case UserStatus.AFK:
-                    color = new Color(250, 166, 26);
-                    break;
-                case UserStatus.DoNotDisturb:
-                    color = new Color(240, 71, 71);
-                    break;
-                case UserStatus.Invisible:
-                case UserStatus.Offline:
-                    color = new Color(116, 127, 141);
-                    break;
-            }
+                UserStatus.Idle => new Color(250, 166, 26),
+                UserStatus.AFK => new Color(250, 166, 26),
+                UserStatus.DoNotDisturb => new Color(240, 71, 71),
+                UserStatus.Invisible => new Color(116, 127, 141),
+                UserStatus.Offline => new Color(116, 127, 141),
+                _ => new Color(67, 181, 129)
+            };
 
-            var builder = new EmbedBuilder()
+            var builder = new EmbedBuilder
             {
                 Color = color,
-                Author = new EmbedAuthorBuilder()
+                Author = new EmbedAuthorBuilder
                 {
                     Name = $"{user.Username}#{user.Discriminator}",
-                    IconUrl = user.GetAvatarUrl(),
+                    IconUrl = user.GetAvatarUrl()
                 },
                 ThumbnailUrl = user.GetAvatarUrl(),
                 Description = user.Mention,
                 Timestamp = DateTimeOffset.Now,
-                Footer = new EmbedFooterBuilder()
+                Footer = new EmbedFooterBuilder
                 {
-                    Text = $"ID: {user.Id}",
+                    Text = $"ID: {user.Id}"
                 }
             };
 
@@ -141,7 +138,7 @@ namespace LucoaBot.Commands
                 .Select(id => Context.Guild.GetRole(id))
                 .Where(e => !e.IsEveryone);
 
-            var fields = new Dictionary<string, string>()
+            var fields = new Dictionary<string, string>
             {
                 { "Status", user.Status.ToString() },
                 { "Joined", user.JoinedAt.HasValue ? user.JoinedAt.Value.ToString("r") : "Left Server" },
@@ -149,7 +146,7 @@ namespace LucoaBot.Commands
                 { $"Roles [{roles.Count()}]", string.Join(" ", roles.Select(e => e.Mention)) }
             };
 
-            builder.WithFields(fields.Select(e => new EmbedFieldBuilder() { Name = e.Key, Value = e.Value, IsInline = true }));
+            builder.WithFields(fields.Select(e => new EmbedFieldBuilder { Name = e.Key, Value = e.Value, IsInline = true }));
 
             if (user.GuildPermissions.Administrator)
             {
@@ -157,10 +154,11 @@ namespace LucoaBot.Commands
             }
             else
             {
-                var perms = keyPermissions
+                var perms = KeyPermissions
                     .Where(e => user.GuildPermissions.Has(e))
-                    .Select(e => e.ToString());
-                if (perms.Count() > 0)
+                    .Select(e => e.ToString())
+                    .ToArray();
+                if (perms.Any())
                     builder.AddField("Key Permissions", string.Join(" ", perms), true);
             }
 
@@ -174,7 +172,7 @@ namespace LucoaBot.Commands
         {
             var uptime = DateTime.UtcNow - Process.GetCurrentProcess().StartTime.ToUniversalTime();
             var message =
-                $"📊📈 **Stats**\n" +
+                "📊📈 **Stats**\n" +
                 $"🔥 **Uptime:** {uptime.ToHumanTimeString(2)}\n" +
                 $"🏓 **Ping:** {Context.Client.Latency}ms\n" +
                 $"🛡 **Guilds:** {Context.Client.Guilds.Count()}\n" +
@@ -183,14 +181,14 @@ namespace LucoaBot.Commands
             return Task.FromResult<RuntimeResult>(CommandResult.FromSuccess(message));
         }
 
-        const string baseUrl = "https://discordapp.com/api/oauth2/authorize";
+        private const string BaseUrl = "https://discordapp.com/api/oauth2/authorize";
 
         [Command("invite")]
         [Summary("Generates an invite link for adding the bot to your Discord")]
         public async Task InviteAsync()
         {
             var applicationInfo = await Context.Client.GetApplicationInfoAsync();
-            await ReplyAsync($"{baseUrl}?client_id={applicationInfo.Id}&permissions=8&scope=bot");
+            await ReplyAsync($"{BaseUrl}?client_id={applicationInfo.Id}&permissions=8&scope=bot");
         }
 
         [Command("roll")]
@@ -204,20 +202,18 @@ namespace LucoaBot.Commands
         [Summary("Takes an emote and makes it larger")]
         public async Task<RuntimeResult> JumboAsync(string emote)
         {
-            Emote emoteObj;
-            if (Emote.TryParse(emote, out emoteObj))
-            {
-                var emoteUri = new Uri(emoteObj.Url);
+            if (!Emote.TryParse(emote, out var emoteObj))
+                return CommandResult.FromError("Emote must be a guild/server emote.");
+            
+            var emoteUri = new Uri(emoteObj.Url);
 
-                var httpClient = httpClientFactory.CreateClient();
-                var response = await httpClient.GetAsync(emoteUri);
-                var contentStream = await response.Content.ReadAsStreamAsync();
+            var httpClient = _httpClientFactory.CreateClient();
+            var response = await httpClient.GetAsync(emoteUri);
+            var contentStream = await response.Content.ReadAsStreamAsync();
 
-                await Context.Channel.SendFileAsync(contentStream, Path.GetFileName(emoteUri.LocalPath));
-                return CommandResult.FromSuccess("");
-            }
+            await Context.Channel.SendFileAsync(contentStream, Path.GetFileName(emoteUri.LocalPath));
+            return CommandResult.FromSuccess("");
 
-            return CommandResult.FromError("Emote must be a guild/server emote.");
         }
 
         [Command("avatar")]
@@ -231,7 +227,7 @@ namespace LucoaBot.Commands
 
             var avatarUri = new Uri(user.GetAvatarUrl() ?? user.GetDefaultAvatarUrl());
 
-            var httpClient = httpClientFactory.CreateClient();
+            var httpClient = _httpClientFactory.CreateClient();
             var response = await httpClient.GetStreamAsync(avatarUri);
 
             await Context.Channel.SendFileAsync(response, Path.GetFileName(avatarUri.LocalPath));
@@ -241,28 +237,20 @@ namespace LucoaBot.Commands
         [Summary("Fetches an xkcd comic. Random for a random id")]
         public async Task XKCDAsync(string id = null)
         {
-            var httpClient = httpClientFactory.CreateClient();
+            var httpClient = _httpClientFactory.CreateClient();
 
             var response = await httpClient.GetStreamAsync("https://xkcd.com/info.0.json");
             var data = await JsonSerializer.DeserializeAsync<XKCDData>(response);
 
             if (id != null)
             {
-                int num = 0;
-                if (id.StartsWith("rand"))
-                {
-                    num = RandomNumberGenerator.GetInt32(1, data.num + 1);
-                }
-                else
-                {
-                    num = int.Parse(id);
-                }
+                var num = id.StartsWith("rand") ? RandomNumberGenerator.GetInt32(1, data.num + 1) : int.Parse(id);
 
                 response = await httpClient.GetStreamAsync($"https://xkcd.com/{num}/info.0.json");
                 data = await JsonSerializer.DeserializeAsync<XKCDData>(response);
             }
 
-            var embedBuilder = new EmbedBuilder()
+            var embedBuilder = new EmbedBuilder
             {
                 Title = $"xkcd: {data.safe_title}",
                 ImageUrl = data.img,

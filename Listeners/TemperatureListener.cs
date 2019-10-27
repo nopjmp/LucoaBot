@@ -1,38 +1,38 @@
-﻿using Discord;
-using Discord.WebSocket;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Discord;
+using Discord.WebSocket;
 
 namespace LucoaBot.Listeners
 {
     public class TemperatureListener
     {
-        private readonly DiscordSocketClient client;
+        private readonly DiscordSocketClient _client;
 
-        private static readonly Regex findRegex = new Regex(@"(?<=^|\s|[_*~])(-?\d*(?:\.\d+)?)\s?°?([FC])(?=$|\s|[_*~])",
+        private static readonly Regex FindRegex = new Regex(@"(?<=^|\s|[_*~])(-?\d*(?:\.\d+)?)\s?°?([FC])(?=$|\s|[_*~])",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        private static readonly Regex urlRegex = new Regex(@"http[^\s]+", RegexOptions.Compiled);
+        private static readonly Regex UrlRegex = new Regex(@"http[^\s]+", RegexOptions.Compiled);
 
         public TemperatureListener(DiscordSocketClient client)
         {
-            this.client = client;
+            _client = client;
         }
 
         public void Initialize()
         {
-            client.MessageReceived += TemperatureListenerAsync;
+            _client.MessageReceived += TemperatureListenerAsync;
         }
 
-        public Task TemperatureListenerAsync(SocketMessage m)
+        private Task TemperatureListenerAsync(SocketMessage m)
         {
             if (!m.Author.IsBot)
             {
                 Task.Run(async () =>
                 {
-                    var self = await m.Channel.GetUserAsync(client.CurrentUser.Id);
+                    var self = await m.Channel.GetUserAsync(_client.CurrentUser.Id);
                     if (self is IGuildUser gSelf)
                     {
                         if (gSelf.GetPermissions(m.Channel as IGuildChannel).SendMessages)
@@ -40,20 +40,23 @@ namespace LucoaBot.Listeners
                             try
                             {
                                 var list = new List<string>();
-                                var content = urlRegex.Replace(m.Content, "");
-                                var matches = from m in findRegex.Matches(content)
+                                var content = UrlRegex.Replace(m.Content, "");
+                                var matches = from m in FindRegex.Matches(content)
                                               where m.Groups.Count == 3
                                               select new { Quantity = double.Parse(m.Groups[1].Value), Unit = m.Groups[2].Value.ToUpper() };
 
                                 foreach (var item in matches)
                                 {
+                                    // ReSharper disable once SwitchStatementMissingSomeCases
                                     switch (item.Unit)
                                     {
                                         case "C":
-                                            list.Add(string.Format("{0:#,##0.##} °C = {1:#,##0.##} °F", item.Quantity, (item.Quantity * 1.8) + 32.0));
+                                            list.Add(
+                                                $"{item.Quantity:#,##0.##} °C = {(item.Quantity * 1.8) + 32.0:#,##0.##} °F");
                                             break;
                                         case "F":
-                                            list.Add(string.Format("{0:#,##0.##} °F = {1:#,##0.##} °C", item.Quantity, (item.Quantity - 32.0) / 1.8));
+                                            list.Add(
+                                                $"{item.Quantity:#,##0.##} °F = {(item.Quantity - 32.0) / 1.8:#,##0.##} °C");
                                             break;
                                     }
                                 }
