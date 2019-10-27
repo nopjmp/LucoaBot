@@ -33,8 +33,11 @@ namespace LucoaBot.Services
 
         private CancellationTokenSource _userCountTokenSource;
 
-        private static readonly Gauge UserCounterGauge = Metrics.CreateGauge("discord_users", "currently observed discord users");
-        private static readonly Gauge LatencyGauge = Metrics.CreateGauge("discord_latency", "currently observed discord users");
+        private static readonly Gauge UserCounterGauge =
+            Metrics.CreateGauge("discord_users", "currently observed discord users");
+
+        private static readonly Gauge LatencyGauge =
+            Metrics.CreateGauge("discord_latency", "currently observed discord users");
 
         public ApplicationLifetimeHostedService(
             IConfiguration configuration,
@@ -44,7 +47,7 @@ namespace LucoaBot.Services
             CommandService commandService,
             CommandHandlerService commandHandlerService,
             LogListener logListener,
-        StarboardListener starboardListener,
+            StarboardListener starboardListener,
             TemperatureListener temperatureListener,
             DatabaseContext databaseContext)
         {
@@ -89,8 +92,10 @@ namespace LucoaBot.Services
                             UserCounterGauge.Set(count);
                             lastCount = count;
                             if (count > 0)
-                                await _discordClient.SetActivityAsync(new Game($"{count} users", ActivityType.Watching));
+                                await _discordClient.SetActivityAsync(new Game($"{count} users",
+                                    ActivityType.Watching));
                         }
+
                         await Task.Delay(10000, userCountToken);
                     }
                 }, userCountToken);

@@ -1,10 +1,10 @@
-﻿using Discord;
+﻿using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Discord;
 using Discord.Commands;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LucoaBot.Commands
 {

@@ -11,6 +11,7 @@ namespace LucoaBot.Commands
     public class SearchModule : ModuleBase<SocketCommandContext>
     {
         private readonly IHttpClientFactory _httpClientFactory;
+
         public SearchModule(IHttpClientFactory httpClientFactory)
         {
             _httpClientFactory = httpClientFactory;
@@ -18,7 +19,7 @@ namespace LucoaBot.Commands
 
         [Command("google")]
         [Summary("Returns back the first result from Google.")]
-        public async Task<RuntimeResult> GoogleAsync([Remainder]string arg)
+        public async Task<RuntimeResult> GoogleAsync([Remainder] string arg)
         {
             var query = HttpUtility.UrlEncode(arg);
             var httpClient = _httpClientFactory.CreateClient("noredirect");

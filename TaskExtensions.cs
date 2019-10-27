@@ -1,4 +1,6 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace LucoaBot
 {
@@ -15,14 +17,15 @@ namespace LucoaBot
         /// <param name="onException">If an exception is thrown in the Task, <c>onException</c> will execute. If onException is null, the exception will be re-thrown</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #pragma warning disable RECS0165 // Asynchronous methods should return a Task instead of void
-        public static async void SafeFireAndForget(this System.Threading.Tasks.Task task, bool continueOnCapturedContext = true, System.Action<System.Exception> onException = null)
+        public static async void SafeFireAndForget(this Task task,
+            bool continueOnCapturedContext = true, Action<Exception> onException = null)
 #pragma warning restore RECS0165 // Asynchronous methods should return a Task instead of void
         {
             try
             {
                 await task.ConfigureAwait(continueOnCapturedContext);
             }
-            catch (System.Exception ex) when (onException != null)
+            catch (Exception ex) when (onException != null)
             {
                 onException(ex);
             }

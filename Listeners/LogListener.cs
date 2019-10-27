@@ -27,20 +27,14 @@ namespace LucoaBot.Listeners
 
         private Task Client_UserJoined(SocketGuildUser user)
         {
-            Task.Run(async () =>
-            {
-                await UserMembershipUpdate(user, true);
-            });
+            Task.Run(async () => { await UserMembershipUpdate(user, true); });
 
             return Task.CompletedTask;
         }
 
         private Task Client_UserLeft(SocketGuildUser user)
         {
-            Task.Run(async () =>
-            {
-                await UserMembershipUpdate(user, false);
-            });
+            Task.Run(async () => { await UserMembershipUpdate(user, false); });
 
             return Task.CompletedTask;
         }

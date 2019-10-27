@@ -23,10 +23,12 @@ namespace LucoaBot.Services
         // this is a bit of a hack to put it in here... should move to it's own handler later
         private static readonly Counter MessageSeenCount =
             Metrics.CreateCounter("discord_messages_total", "Total messages seen count");
+
         private static readonly Counter CommandCount =
             Metrics.CreateCounter("discord_command_count", "Executed commands", labelNames: new[] {"result"});
 
-        public CommandHandlerService(IServiceProvider services, DiscordSocketClient client, CommandService commands, DatabaseContext context, IMemoryCache cache)
+        public CommandHandlerService(IServiceProvider services, DiscordSocketClient client, CommandService commands,
+            DatabaseContext context, IMemoryCache cache)
         {
             _services = services;
             _client = client;
@@ -46,10 +48,11 @@ namespace LucoaBot.Services
             _client.MessageReceived += HandleCommandAsync;
         }
 
-        private async Task OnCommandExecutedAsync(Optional<CommandInfo> command, ICommandContext cmdContext, IResult result)
+        private async Task OnCommandExecutedAsync(Optional<CommandInfo> command, ICommandContext cmdContext,
+            IResult result)
         {
             if (result == null) return;
-            
+
             if (!result.IsSuccess)
             {
                 // Unknown errors are to be ignored for failure count

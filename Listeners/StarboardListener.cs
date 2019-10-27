@@ -17,7 +17,8 @@ namespace LucoaBot.Listeners
         private readonly DatabaseContext _context;
         private readonly DiscordSocketClient _client;
 
-        private static readonly Counter StarboardMessageCounter = Metrics.CreateCounter("discord_starboard_count", "Number of starboard posts");
+        private static readonly Counter StarboardMessageCounter =
+            Metrics.CreateCounter("discord_starboard_count", "Number of starboard posts");
 
         private readonly Emoji _emoji = new Emoji("⭐");
 #if !DEBUG
@@ -50,18 +51,20 @@ namespace LucoaBot.Listeners
                     if (socketChannel is SocketTextChannel channel)
                     {
                         var config = await _context.GuildConfigs
-                                        .Where(e => e.GuildId == channel.Guild.Id)
-                                        .FirstOrDefaultAsync();
-                        if (config?.StarBoardChannel != null && config.StarBoardChannel != channel.Id && config.StarBoardChannel != 0)
+                            .Where(e => e.GuildId == channel.Guild.Id)
+                            .FirstOrDefaultAsync();
+                        if (config?.StarBoardChannel != null && config.StarBoardChannel != channel.Id &&
+                            config.StarBoardChannel != 0)
                         {
                             var starboardChannel = channel.Guild.GetTextChannel(config.StarBoardChannel.Value);
                             var messageId = message.Id.ToString();
                             var messages = starboardChannel.GetMessagesAsync(limit: int.MaxValue).Flatten();
 
                             var starMessage = await (from m in messages
-                                                     where m.Author.Id == _client.CurrentUser.Id
-                                                          && m.Embeds.SelectMany(e => e.Fields).Any(f => f.Name == "Message ID" && f.Value == messageId)
-                                                     select m).FirstOrDefault();
+                                where m.Author.Id == _client.CurrentUser.Id
+                                      && m.Embeds.SelectMany(e => e.Fields).Any(f =>
+                                          f.Name == "Message ID" && f.Value == messageId)
+                                select m).FirstOrDefault();
 
                             if (starMessage != null)
                             {
@@ -79,22 +82,24 @@ namespace LucoaBot.Listeners
             return Task.CompletedTask;
         }
 
-        private Task<IMessage> FindStarPost(SocketTextChannel starboardChannel, SocketTextChannel channel, IUserMessage message)
+        private Task<IMessage> FindStarPost(SocketTextChannel starboardChannel, SocketTextChannel channel,
+            IUserMessage message)
         {
             var messageId = message.Id.ToString();
             var dateThreshold = DateTimeOffset.Now.AddDays(-1);
             var messages = starboardChannel.GetMessagesAsync().Flatten();
             return (from m in messages
-                    where m.Author.Id == _client.CurrentUser.Id
-                         && m.CreatedAt > dateThreshold
-                         && m.Embeds.SelectMany(e => e.Fields).Any(f => f.Name == "Message ID" && f.Value == messageId)
-                    select m).FirstOrDefault();
+                where m.Author.Id == _client.CurrentUser.Id
+                      && m.CreatedAt > dateThreshold
+                      && m.Embeds.SelectMany(e => e.Fields).Any(f => f.Name == "Message ID" && f.Value == messageId)
+                select m).FirstOrDefault();
         }
 
-        private async Task ProcessReaction(GuildConfig config, SocketTextChannel channel, IUserMessage message, int count)
+        private async Task ProcessReaction(GuildConfig config, SocketTextChannel channel, IUserMessage message,
+            int count)
         {
             if (config.StarBoardChannel == null) return;
-            
+
             var starboardChannel = channel.Guild.GetTextChannel(config.StarBoardChannel.Value);
             if (starboardChannel != null)
             {
@@ -154,9 +159,11 @@ namespace LucoaBot.Listeners
                             }
                         }
                     }
+
                     embedBuilder.AddField("Channel", channel.Mention, true)
-                                .AddField("Message ID", message.Id, true)
-                                .AddField("Link to message", $"[Click here to go to the original message.]({message.GetJumpUrl()})");
+                        .AddField("Message ID", message.Id, true)
+                        .AddField("Link to message",
+                            $"[Click here to go to the original message.]({message.GetJumpUrl()})");
 
                     if (starboardMessage == null)
                     {

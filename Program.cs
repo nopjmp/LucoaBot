@@ -1,4 +1,7 @@
-﻿using Discord;
+﻿using System.IO;
+using System.Net.Http;
+using System.Threading.Tasks;
+using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using LucoaBot.Listeners;
@@ -10,9 +13,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Prometheus;
 using Serilog;
-using System.IO;
-using System.Net.Http;
-using System.Threading.Tasks;
 
 namespace LucoaBot
 {
@@ -36,7 +36,6 @@ namespace LucoaBot
                     configApp.AddJsonFile("appsettings.json", true);
                     configApp.AddJsonFile($"appsettings.{hostContext.HostingEnvironment.EnvironmentName}.json", true);
                     configApp.AddCommandLine(args);
-
                 })
                 .ConfigureServices((hostContext, services) =>
                 {

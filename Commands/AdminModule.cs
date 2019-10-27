@@ -1,12 +1,12 @@
-﻿using Discord;
+﻿using System;
+using System.Linq;
+using System.Threading.Tasks;
+using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace LucoaBot.Commands
 {
@@ -42,6 +42,7 @@ namespace LucoaBot.Commands
                 config.LogChannel = channel.Id;
                 await ReplyAsync($"Log channel set to {channel.Mention}");
             }
+
             _context.SaveChangesAsync().SafeFireAndForget(false);
         }
 
@@ -54,22 +55,22 @@ namespace LucoaBot.Commands
             switch (Context.Channel)
             {
                 case ITextChannel c:
-                    {
-                        var messages = await c.GetMessagesAsync(num + 1).FlattenAsync();
-                        c.DeleteMessagesAsync(messages).SafeFireAndForget(false);
-                        var message = await ReplyAsync($"Bulk deleted {num} messages.");
-                        await Task.Delay(TimeSpan.FromSeconds(5));
+                {
+                    var messages = await c.GetMessagesAsync(num + 1).FlattenAsync();
+                    c.DeleteMessagesAsync(messages).SafeFireAndForget(false);
+                    var message = await ReplyAsync($"Bulk deleted {num} messages.");
+                    await Task.Delay(TimeSpan.FromSeconds(5));
 
-                        message.DeleteAsync().SafeFireAndForget(false);
-                    }
+                    message.DeleteAsync().SafeFireAndForget(false);
+                }
                     break;
                 default:
-                    {
-                        var message = await ReplyAsync("We can't delete messages here.");
-                        await Task.Delay(TimeSpan.FromSeconds(5));
+                {
+                    var message = await ReplyAsync("We can't delete messages here.");
+                    await Task.Delay(TimeSpan.FromSeconds(5));
 
-                        message.DeleteAsync().SafeFireAndForget(false);
-                    }
+                    message.DeleteAsync().SafeFireAndForget(false);
+                }
                     break;
             }
         }
@@ -94,7 +95,8 @@ namespace LucoaBot.Commands
 
                 _cache.Set("guildconfig:" + Context.Guild.Id, config);
 
-                ReplyAsync($"{Context.User.Username}#{Context.User.Discriminator} has changed the prefix to `{prefix}`").SafeFireAndForget(false);
+                ReplyAsync($"{Context.User.Username}#{Context.User.Discriminator} has changed the prefix to `{prefix}`")
+                    .SafeFireAndForget(false);
             }
         }
     }

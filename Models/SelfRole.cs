@@ -6,8 +6,7 @@ namespace LucoaBot.Models
     {
         public int Id { get; set; }
         public ulong GuildId { get; set; }
-        [StringLength(255)]
-        public string Category { get; set; }
+        [StringLength(255)] public string Category { get; set; }
         public ulong RoleId { get; set; }
     }
 }

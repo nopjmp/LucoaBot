@@ -77,23 +77,26 @@ namespace LucoaBot.Commands
 
             var fields = new Dictionary<string, string>
             {
-                { "Id", Context.Guild.Id.ToString() },
-                { "Region", regions.Where(e => e.Id == Context.Guild.VoiceRegionId)
-                    .Select(e => e.Name)
-                    .DefaultIfEmpty("unknown")
-                    .FirstOrDefault() },
-                { "Categories", Context.Guild.CategoryChannels.Count().ToString() },
-                { "Text Channels", Context.Guild.TextChannels.Count().ToString() },
-                { "Voice Channels", Context.Guild.VoiceChannels.Count().ToString() },
-                { "Total Members", Context.Guild.MemberCount.ToString() },
-                { "Online Members", Context.Guild.Users.Count(e => e.Status != UserStatus.Offline).ToString() },
-                { "People", Context.Guild.Users.Count(e => !e.IsBot).ToString() },
-                { "Bots", Context.Guild.Users.Count(e => e.IsBot).ToString() },
-                { "Emojis", Context.Guild.Emotes.Count().ToString() },
-                { "Created At", Context.Guild.CreatedAt.ToString("r") }
+                {"Id", Context.Guild.Id.ToString()},
+                {
+                    "Region", regions.Where(e => e.Id == Context.Guild.VoiceRegionId)
+                        .Select(e => e.Name)
+                        .DefaultIfEmpty("unknown")
+                        .FirstOrDefault()
+                },
+                {"Categories", Context.Guild.CategoryChannels.Count().ToString()},
+                {"Text Channels", Context.Guild.TextChannels.Count().ToString()},
+                {"Voice Channels", Context.Guild.VoiceChannels.Count().ToString()},
+                {"Total Members", Context.Guild.MemberCount.ToString()},
+                {"Online Members", Context.Guild.Users.Count(e => e.Status != UserStatus.Offline).ToString()},
+                {"People", Context.Guild.Users.Count(e => !e.IsBot).ToString()},
+                {"Bots", Context.Guild.Users.Count(e => e.IsBot).ToString()},
+                {"Emojis", Context.Guild.Emotes.Count().ToString()},
+                {"Created At", Context.Guild.CreatedAt.ToString("r")}
             };
 
-            builder.WithFields(fields.Select(e => new EmbedFieldBuilder { Name = e.Key, Value = e.Value, IsInline = true }));
+            builder.WithFields(
+                fields.Select(e => new EmbedFieldBuilder {Name = e.Key, Value = e.Value, IsInline = true}));
             ReplyAsync("", false, builder.Build()).SafeFireAndForget(false);
         }
 
@@ -140,13 +143,14 @@ namespace LucoaBot.Commands
 
             var fields = new Dictionary<string, string>
             {
-                { "Status", user.Status.ToString() },
-                { "Joined", user.JoinedAt.HasValue ? user.JoinedAt.Value.ToString("r") : "Left Server" },
-                { "Registered", user.CreatedAt.ToString("r") },
-                { $"Roles [{roles.Count()}]", string.Join(" ", roles.Select(e => e.Mention)) }
+                {"Status", user.Status.ToString()},
+                {"Joined", user.JoinedAt.HasValue ? user.JoinedAt.Value.ToString("r") : "Left Server"},
+                {"Registered", user.CreatedAt.ToString("r")},
+                {$"Roles [{roles.Count()}]", string.Join(" ", roles.Select(e => e.Mention))}
             };
 
-            builder.WithFields(fields.Select(e => new EmbedFieldBuilder { Name = e.Key, Value = e.Value, IsInline = true }));
+            builder.WithFields(
+                fields.Select(e => new EmbedFieldBuilder {Name = e.Key, Value = e.Value, IsInline = true}));
 
             if (user.GuildPermissions.Administrator)
             {
@@ -204,7 +208,7 @@ namespace LucoaBot.Commands
         {
             if (!Emote.TryParse(emote, out var emoteObj))
                 return CommandResult.FromError("Emote must be a guild/server emote.");
-            
+
             var emoteUri = new Uri(emoteObj.Url);
 
             var httpClient = _httpClientFactory.CreateClient();
@@ -213,7 +217,6 @@ namespace LucoaBot.Commands
 
             await Context.Channel.SendFileAsync(contentStream, Path.GetFileName(emoteUri.LocalPath));
             return CommandResult.FromSuccess("");
-
         }
 
         [Command("avatar")]

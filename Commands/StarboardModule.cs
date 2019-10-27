@@ -39,6 +39,7 @@ namespace LucoaBot.Commands
                 config.StarBoardChannel = channel.Id;
                 await ReplyAsync($"Starboard set to {channel.Mention}");
             }
+
             _context.SaveChangesAsync().SafeFireAndForget(false);
         }
     }

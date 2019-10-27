@@ -15,6 +15,7 @@ namespace LucoaBot.Commands
     {
         private readonly DatabaseContext _database;
         private readonly CommandService _commandService;
+
         public CustomCommandModule(DatabaseContext database, CommandService commandService)
         {
             _database = database;
