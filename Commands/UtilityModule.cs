@@ -213,7 +213,7 @@ namespace LucoaBot.Commands
 
             var httpClient = _httpClientFactory.CreateClient();
             var response = await httpClient.GetAsync(emoteUri);
-            var contentStream = await response.Content.ReadAsStreamAsync();
+            await using var contentStream = await response.Content.ReadAsStreamAsync();
 
             await Context.Channel.SendFileAsync(contentStream, Path.GetFileName(emoteUri.LocalPath));
             return CommandResult.FromSuccess("");
@@ -231,7 +231,7 @@ namespace LucoaBot.Commands
             var avatarUri = new Uri(user.GetAvatarUrl() ?? user.GetDefaultAvatarUrl());
 
             var httpClient = _httpClientFactory.CreateClient();
-            var response = await httpClient.GetStreamAsync(avatarUri);
+            await using var response = await httpClient.GetStreamAsync(avatarUri);
 
             await Context.Channel.SendFileAsync(response, Path.GetFileName(avatarUri.LocalPath));
         }
@@ -242,15 +242,15 @@ namespace LucoaBot.Commands
         {
             var httpClient = _httpClientFactory.CreateClient();
 
-            var response = await httpClient.GetStreamAsync("https://xkcd.com/info.0.json");
+            await using var response = await httpClient.GetStreamAsync("https://xkcd.com/info.0.json");
             var data = await JsonSerializer.DeserializeAsync<XKCDData>(response);
 
             if (id != null)
             {
                 var num = id.StartsWith("rand") ? RandomNumberGenerator.GetInt32(1, data.num + 1) : int.Parse(id);
 
-                response = await httpClient.GetStreamAsync($"https://xkcd.com/{num}/info.0.json");
-                data = await JsonSerializer.DeserializeAsync<XKCDData>(response);
+                await using var numResponse = await httpClient.GetStreamAsync($"https://xkcd.com/{num}/info.0.json");
+                data = await JsonSerializer.DeserializeAsync<XKCDData>(numResponse);
             }
 
             var embedBuilder = new EmbedBuilder

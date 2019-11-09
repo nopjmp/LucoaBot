@@ -24,7 +24,7 @@ namespace LucoaBot.Commands
             var query = HttpUtility.UrlEncode(arg);
             var httpClient = _httpClientFactory.CreateClient("noredirect");
 
-            var response = await httpClient.GetAsync($"https://www.google.com/search?q={query}&btnI");
+            using var response = await httpClient.GetAsync($"https://www.google.com/search?q={query}&btnI");
 
             if (response.StatusCode == HttpStatusCode.Redirect && response.Headers.Location != null)
                 return CommandResult.FromSuccess(response.Headers.Location.ToString());

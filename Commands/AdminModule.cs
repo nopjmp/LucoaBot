@@ -28,7 +28,7 @@ namespace LucoaBot.Commands
         [RequireUserPermission(GuildPermission.ManageGuild)]
         public async Task LogAsync(SocketTextChannel channel)
         {
-            var config = await _context.GuildConfigs
+            var config = await _context.GuildConfigs.AsQueryable()
                 .Where(e => e.GuildId == Context.Guild.Id)
                 .FirstOrDefaultAsync();
 
@@ -86,7 +86,7 @@ namespace LucoaBot.Commands
             }
             else
             {
-                var config = await _context.GuildConfigs
+                var config = await _context.GuildConfigs.AsQueryable()
                     .Where(e => e.GuildId == Context.Guild.Id)
                     .SingleOrDefaultAsync();
 

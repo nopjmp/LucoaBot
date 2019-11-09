@@ -24,7 +24,7 @@ namespace LucoaBot.Commands
         [Summary("Lists self assignable roles.")]
         public async Task ListRolesAsync() //(bool textOnly = false)
         {
-            var selfRoles = (await _context.SelfRoles
+            var selfRoles = (await _context.SelfRoles.AsQueryable()
                     .Where(r => r.GuildId == Context.Guild.Id)
                     .ToListAsync())
                 .GroupBy(r => r.Category ?? "default")
@@ -63,7 +63,7 @@ namespace LucoaBot.Commands
         [RequireUserPermission(GuildPermission.ManageRoles)]
         public async Task<RuntimeResult> AddRoleAsync(IRole role, string category = null)
         {
-            var selfRoleCheck = await _context.SelfRoles
+            var selfRoleCheck = await _context.SelfRoles.AsQueryable()
                 .Where(r => r.GuildId == Context.Guild.Id && r.RoleId == role.Id)
                 .AnyAsync();
 
@@ -90,7 +90,7 @@ namespace LucoaBot.Commands
         [RequireUserPermission(GuildPermission.ManageRoles)]
         public async Task<RuntimeResult> RemoveRoleAsync(IRole role)
         {
-            var selfRoleEntry = await _context.SelfRoles
+            var selfRoleEntry = await _context.SelfRoles.AsQueryable()
                 .Where(r => r.GuildId == Context.Guild.Id && r.RoleId == role.Id)
                 .FirstOrDefaultAsync();
 
@@ -115,7 +115,7 @@ namespace LucoaBot.Commands
             if (guildUser.RoleIds.Contains(role.Id))
                 return CommandResult.FromError($"{Context.User.Mention}... You already have **{role.Name}**.");
 
-            var selfRoleEntry = await _context.SelfRoles
+            var selfRoleEntry = await _context.SelfRoles.AsQueryable()
                 .Where(x => x.GuildId == Context.Guild.Id && x.RoleId == role.Id)
                 .FirstOrDefaultAsync();
 
@@ -124,7 +124,7 @@ namespace LucoaBot.Commands
 
             if (selfRoleEntry.Category != null && selfRoleEntry.Category != "default")
             {
-                var removeList = await _context.SelfRoles
+                var removeList = await _context.SelfRoles.AsQueryable()
                     .Where(r => r.GuildId == Context.Guild.Id && r.Category == selfRoleEntry.Category &&
                                 guildUser.RoleIds.Contains(r.RoleId))
                     .Select(r => Context.Guild.GetRole(r.RoleId))
@@ -143,14 +143,13 @@ namespace LucoaBot.Commands
         [Summary("Removes the requested role from the caller, if allowed")]
         public async Task<RuntimeResult> IamNotAsync(IRole role)
         {
-            var guildUser = Context.User as IGuildUser;
-            if (guildUser == null)
+            if (!(Context.User is IGuildUser guildUser))
                 return CommandResult.FromError("Secret easter egg, please message the bot owner!!! 🤕");
 
             if (!guildUser.RoleIds.Contains(role.Id))
                 return CommandResult.FromError($"{Context.User.Mention}... You do not have **{role.Name}**.");
 
-            var selfRoleExists = await _context.SelfRoles
+            var selfRoleExists = await _context.SelfRoles.AsQueryable()
                 .Where(x => x.GuildId == Context.Guild.Id && x.RoleId == role.Id)
                 .AnyAsync();
 

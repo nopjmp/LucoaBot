@@ -50,7 +50,7 @@ namespace LucoaBot.Listeners
                 {
                     if (socketChannel is SocketTextChannel channel)
                     {
-                        var config = await _context.GuildConfigs
+                        var config = await _context.GuildConfigs.AsQueryable()
                             .Where(e => e.GuildId == channel.Guild.Id)
                             .FirstOrDefaultAsync();
                         if (config?.StarBoardChannel != null && config.StarBoardChannel != channel.Id &&
@@ -64,7 +64,7 @@ namespace LucoaBot.Listeners
                                 where m.Author.Id == _client.CurrentUser.Id
                                       && m.Embeds.SelectMany(e => e.Fields).Any(f =>
                                           f.Name == "Message ID" && f.Value == messageId)
-                                select m).FirstOrDefault();
+                                select m).FirstOrDefaultAsync();
 
                             if (starMessage != null)
                             {
@@ -82,8 +82,7 @@ namespace LucoaBot.Listeners
             return Task.CompletedTask;
         }
 
-        private Task<IMessage> FindStarPost(SocketTextChannel starboardChannel, SocketTextChannel channel,
-            IUserMessage message)
+        private ValueTask<IMessage> FindStarPost(SocketTextChannel starboardChannel, IUserMessage message)
         {
             var messageId = message.Id.ToString();
             var dateThreshold = DateTimeOffset.Now.AddDays(-1);
@@ -92,7 +91,7 @@ namespace LucoaBot.Listeners
                 where m.Author.Id == _client.CurrentUser.Id
                       && m.CreatedAt > dateThreshold
                       && m.Embeds.SelectMany(e => e.Fields).Any(f => f.Name == "Message ID" && f.Value == messageId)
-                select m).FirstOrDefault();
+                select m).FirstOrDefaultAsync();
         }
 
         private async Task ProcessReaction(GuildConfig config, SocketTextChannel channel, IUserMessage message,
@@ -103,7 +102,7 @@ namespace LucoaBot.Listeners
             var starboardChannel = channel.Guild.GetTextChannel(config.StarBoardChannel.Value);
             if (starboardChannel != null)
             {
-                var starboardMessage = await FindStarPost(starboardChannel, channel, message) as IUserMessage;
+                var starboardMessage = await FindStarPost(starboardChannel, message) as IUserMessage;
 
                 if (count < DefaultThreshold)
                 {
@@ -189,7 +188,7 @@ namespace LucoaBot.Listeners
                     try
                     {
                         var channel = socketChannel as SocketTextChannel;
-                        var config = await _context.GuildConfigs
+                        var config = await _context.GuildConfigs.AsQueryable()
                             .Where(e => e.GuildId == channel.Guild.Id)
                             .FirstOrDefaultAsync();
 
@@ -231,7 +230,7 @@ namespace LucoaBot.Listeners
                     try
                     {
                         var channel = socketChannel as SocketTextChannel;
-                        var config = await _context.GuildConfigs
+                        var config = await _context.GuildConfigs.AsQueryable()
                             .Where(e => e.GuildId == channel.Guild.Id)
                             .FirstOrDefaultAsync();
 
@@ -275,7 +274,7 @@ namespace LucoaBot.Listeners
                     try
                     {
                         var channel = socketChannel as SocketTextChannel;
-                        var config = await _context.GuildConfigs
+                        var config = await _context.GuildConfigs.AsQueryable()
                             .Where(e => e.GuildId == channel.Guild.Id)
                             .FirstOrDefaultAsync();
 

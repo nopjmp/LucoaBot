@@ -25,7 +25,7 @@ namespace LucoaBot.Commands
         [Summary("Sets up the starboard")]
         public async Task SetStarboardAsync(SocketTextChannel channel = null)
         {
-            var config = await _context.GuildConfigs
+            var config = await _context.GuildConfigs.AsQueryable()
                 .Where(e => e.GuildId == Context.Guild.Id)
                 .FirstOrDefaultAsync();
 

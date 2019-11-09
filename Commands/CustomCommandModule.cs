@@ -33,7 +33,7 @@ namespace LucoaBot.Commands
 
             var status = "Updated";
 
-            var entry = await _database.CustomCommands
+            var entry = await _database.CustomCommands.AsQueryable()
                 .Where(c => c.Command == commandKey)
                 .FirstOrDefaultAsync();
 
@@ -62,7 +62,7 @@ namespace LucoaBot.Commands
         {
             var commandKey = command.ToLowerInvariant();
 
-            var entry = await _database.CustomCommands
+            var entry = await _database.CustomCommands.AsQueryable()
                 .Where(c => c.Command == commandKey)
                 .FirstOrDefaultAsync();
 
