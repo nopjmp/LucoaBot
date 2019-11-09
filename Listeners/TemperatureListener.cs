@@ -10,13 +10,12 @@ namespace LucoaBot.Listeners
 {
     public class TemperatureListener
     {
-        private readonly DiscordSocketClient _client;
-
         private static readonly Regex FindRegex = new Regex(
             @"(?<=^|\s|[_*~])(-?\d*(?:\.\d+)?)\s?°?([FC])(?=$|\s|[_*~])",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex UrlRegex = new Regex(@"http[^\s]+", RegexOptions.Compiled);
+        private readonly DiscordSocketClient _client;
 
         public TemperatureListener(DiscordSocketClient client)
         {
@@ -31,14 +30,11 @@ namespace LucoaBot.Listeners
         private Task TemperatureListenerAsync(SocketMessage socketMessage)
         {
             if (!socketMessage.Author.IsBot)
-            {
                 Task.Run(async () =>
                 {
                     var self = await socketMessage.Channel.GetUserAsync(_client.CurrentUser.Id);
                     if (self is IGuildUser gSelf)
-                    {
                         if (gSelf.GetPermissions(socketMessage.Channel as IGuildChannel).SendMessages)
-                        {
                             try
                             {
                                 var list = new List<string>();
@@ -51,20 +47,18 @@ namespace LucoaBot.Listeners
                                     };
 
                                 foreach (var i in matches)
-                                {
                                     // ReSharper disable once SwitchStatementMissingSomeCases
                                     switch (i.Unit)
                                     {
                                         case "C":
                                             list.Add(
-                                                $"{i.Quantity:#,##0.##} °C = {(i.Quantity * 1.8) + 32.0:#,##0.##} °F");
+                                                $"{i.Quantity:#,##0.##} °C = {i.Quantity * 1.8 + 32.0:#,##0.##} °F");
                                             break;
                                         case "F":
                                             list.Add(
                                                 $"{i.Quantity:#,##0.##} °F = {(i.Quantity - 32.0) / 1.8:#,##0.##} °C");
                                             break;
                                     }
-                                }
 
                                 if (list.Any())
                                     await socketMessage.Channel.SendMessageAsync(string.Join("\n", list));
@@ -73,10 +67,7 @@ namespace LucoaBot.Listeners
                             {
                                 // Do nothing
                             }
-                        }
-                    }
                 }).SafeFireAndForget(false);
-            }
 
             return Task.CompletedTask;
         }

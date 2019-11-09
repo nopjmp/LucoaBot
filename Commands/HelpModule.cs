@@ -11,8 +11,8 @@ namespace LucoaBot.Commands
     [Name("Help")]
     public class HelpModule : ModuleBase<SocketCommandContext>
     {
-        private readonly CommandService _service;
         private readonly DatabaseContext _context;
+        private readonly CommandService _service;
 
         public HelpModule(CommandService service, DatabaseContext context)
         {
@@ -32,13 +32,10 @@ namespace LucoaBot.Commands
                     .Where(e => e.GuildId == Context.Guild.Id)
                     .FirstOrDefaultAsync();
 
-                if (config != null)
-                {
-                    prefix = config.Prefix;
-                }
+                if (config != null) prefix = config.Prefix;
             }
 
-            var builder = new EmbedBuilder()
+            var builder = new EmbedBuilder
             {
                 Color = new Color(114, 137, 218),
                 Description = "Bot Commands"
@@ -64,14 +61,12 @@ namespace LucoaBot.Commands
                 }
 
                 if (stringBuilder.Length > 0)
-                {
                     builder.AddField(f =>
                     {
                         f.Name = module.Name;
                         f.Value = stringBuilder.ToString();
                         f.IsInline = false;
                     });
-                }
             }
 
             ReplyAsync("", false, builder.Build()).SafeFireAndForget(false);

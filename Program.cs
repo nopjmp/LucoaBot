@@ -16,23 +16,23 @@ using Serilog;
 
 namespace LucoaBot
 {
-    static class Program
+    internal static class Program
     {
         private const string Prefix = "LUCOA_";
 
         public static async Task Main(string[] args)
         {
-            IHost host = new HostBuilder()
+            var host = new HostBuilder()
                 .ConfigureHostConfiguration(configHost =>
                 {
                     configHost.SetBasePath(Directory.GetCurrentDirectory());
-                    configHost.AddEnvironmentVariables(prefix: Prefix);
+                    configHost.AddEnvironmentVariables(Prefix);
                     configHost.AddCommandLine(args);
                 })
                 .ConfigureAppConfiguration((hostContext, configApp) =>
                 {
                     configApp.SetBasePath(Directory.GetCurrentDirectory());
-                    configApp.AddEnvironmentVariables(prefix: Prefix);
+                    configApp.AddEnvironmentVariables(Prefix);
                     configApp.AddJsonFile("appsettings.json", true);
                     configApp.AddJsonFile($"appsettings.{hostContext.HostingEnvironment.EnvironmentName}.json", true);
                     configApp.AddCommandLine(args);
@@ -49,7 +49,7 @@ namespace LucoaBot
                                 AllowAutoRedirect = false
                             });
 
-                    services.AddSingleton<IMetricServer>((_) => new MetricServer("localhost", 9091));
+                    services.AddSingleton<IMetricServer>(_ => new MetricServer("localhost", 9091));
 
                     services.AddHostedService<ApplicationLifetimeHostedService>();
 
@@ -63,7 +63,7 @@ namespace LucoaBot
                     {
                         LogLevel = LogSeverity.Info,
                         CaseSensitiveCommands = false,
-                        DefaultRunMode = RunMode.Async,
+                        DefaultRunMode = RunMode.Async
                     }));
                     services.AddSingleton<CommandHandlerService>();
                     services.AddDbContextPool<DatabaseContext>(options => options.UseNpgsql(

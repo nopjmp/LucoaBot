@@ -8,10 +8,14 @@ namespace LucoaBot
         {
         }
 
-        public static CommandResult FromError(string reason) =>
-            new CommandResult(CommandError.Unsuccessful, reason);
+        public static CommandResult FromError(string reason)
+        {
+            return new CommandResult(CommandError.Unsuccessful, reason);
+        }
 
-        public static CommandResult FromSuccess(string reason) =>
-            new CommandResult(null, reason);
+        public static CommandResult FromSuccess(string reason)
+        {
+            return new CommandResult(null, reason);
+        }
     }
 }

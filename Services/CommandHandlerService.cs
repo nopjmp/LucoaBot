@@ -14,18 +14,18 @@ namespace LucoaBot.Services
 {
     public class CommandHandlerService
     {
-        private readonly IServiceProvider _services;
-        private readonly DiscordSocketClient _client;
-        private readonly CommandService _commands;
-        private readonly DatabaseContext _context;
-        private readonly IMemoryCache _cache;
-
         // this is a bit of a hack to put it in here... should move to it's own handler later
         private static readonly Counter MessageSeenCount =
             Metrics.CreateCounter("discord_messages_total", "Total messages seen count");
 
         private static readonly Counter CommandCount =
-            Metrics.CreateCounter("discord_command_count", "Executed commands", labelNames: new[] {"result"});
+            Metrics.CreateCounter("discord_command_count", "Executed commands", "result");
+
+        private readonly IMemoryCache _cache;
+        private readonly DiscordSocketClient _client;
+        private readonly CommandService _commands;
+        private readonly DatabaseContext _context;
+        private readonly IServiceProvider _services;
 
         public CommandHandlerService(IServiceProvider services, DiscordSocketClient client, CommandService commands,
             DatabaseContext context, IMemoryCache cache)
@@ -67,7 +67,6 @@ namespace LucoaBot.Services
                     {
                         // this should always be true, TODO: figure out a better way to remove this
                         if (cmdContext is CustomCommandContext customContext)
-                        {
                             Task.Run(async () =>
                             {
                                 var commandKey = customContext.Message.Content.Substring(customContext.ArgPos).Trim()
@@ -87,7 +86,6 @@ namespace LucoaBot.Services
                                     await customContext.Channel.SendMessageAsync(response);
                                 }
                             }).SafeFireAndForget(false);
-                        }
 
                         return;
                     }
@@ -99,9 +97,7 @@ namespace LucoaBot.Services
             }
 
             if (!string.IsNullOrEmpty(result.ErrorReason))
-            {
                 await cmdContext.Channel.SendMessageAsync(result.ErrorReason);
-            }
         }
 
         public async Task HandleCommandAsync(SocketMessage socketMessage)

@@ -14,8 +14,8 @@ namespace LucoaBot.Commands
     [RequireContext(ContextType.Guild)]
     public class AdminModule : ModuleBase<SocketCommandContext>
     {
-        private readonly DatabaseContext _context;
         private readonly IMemoryCache _cache;
+        private readonly DatabaseContext _context;
 
         public AdminModule(DatabaseContext context, IMemoryCache cache)
         {

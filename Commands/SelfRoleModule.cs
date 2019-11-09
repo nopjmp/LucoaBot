@@ -35,13 +35,11 @@ namespace LucoaBot.Commands
                 Title = "Self Assignable Roles"
             };
             foreach (var group in selfRoles)
-            {
                 embedBuilder.AddField(group.Key,
                     string.Join(" ",
                         group.Select(r => Context.Guild.GetRole(r.RoleId)
                             .Mention)),
                     true);
-            }
 
             // sort default to the front
             var fb = embedBuilder.Fields.Find(fb => fb.Name == "default");

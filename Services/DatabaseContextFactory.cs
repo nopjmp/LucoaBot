@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace LucoaBot.Services
 {
-    class DatabaseContextFactory : IDesignTimeDbContextFactory<DatabaseContext>
+    internal class DatabaseContextFactory : IDesignTimeDbContextFactory<DatabaseContext>
     {
         public DatabaseContext CreateDbContext(string[] args)
         {

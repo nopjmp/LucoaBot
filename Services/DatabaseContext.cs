@@ -11,6 +11,10 @@ namespace LucoaBot.Services
         {
         }
 
+        public DbSet<CustomCommand> CustomCommands { get; set; }
+        public DbSet<GuildConfig> GuildConfigs { get; set; }
+        public DbSet<SelfRole> SelfRoles { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Postgres 10+ is required for this feature.
@@ -44,9 +48,5 @@ namespace LucoaBot.Services
                         b.HasIndex(e => new {e.GuildId, e.RoleId}).IsUnique();
                     });
         }
-
-        public DbSet<CustomCommand> CustomCommands { get; set; }
-        public DbSet<GuildConfig> GuildConfigs { get; set; }
-        public DbSet<SelfRole> SelfRoles { get; set; }
     }
 }

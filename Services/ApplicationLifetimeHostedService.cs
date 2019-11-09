@@ -16,28 +16,28 @@ namespace LucoaBot.Services
 {
     public class ApplicationLifetimeHostedService : IHostedService
     {
-        private readonly ILogger<ApplicationLifetimeHostedService> _logger;
-        private readonly IConfiguration _configuration;
-
-        private readonly IMetricServer _metricServer;
-
-        private readonly DiscordSocketClient _discordClient;
-        private readonly CommandService _commandService;
-        private readonly CommandHandlerService _commandHandlerService;
-
-        // TODO: make this an array of listeners...
-        private readonly LogListener _logListener;
-        private readonly StarboardListener _starboardListener;
-        private readonly TemperatureListener _temperatureListener;
-        private readonly DatabaseContext _databaseContext;
-
-        private CancellationTokenSource _userCountTokenSource;
-
         private static readonly Gauge UserCounterGauge =
             Metrics.CreateGauge("discord_users", "currently observed discord users");
 
         private static readonly Gauge LatencyGauge =
             Metrics.CreateGauge("discord_latency", "currently observed discord users");
+
+        private readonly CommandHandlerService _commandHandlerService;
+        private readonly CommandService _commandService;
+        private readonly IConfiguration _configuration;
+        private readonly DatabaseContext _databaseContext;
+
+        private readonly DiscordSocketClient _discordClient;
+        private readonly ILogger<ApplicationLifetimeHostedService> _logger;
+
+        // TODO: make this an array of listeners...
+        private readonly LogListener _logListener;
+
+        private readonly IMetricServer _metricServer;
+        private readonly StarboardListener _starboardListener;
+        private readonly TemperatureListener _temperatureListener;
+
+        private CancellationTokenSource _userCountTokenSource;
 
         public ApplicationLifetimeHostedService(
             IConfiguration configuration,
@@ -69,9 +69,7 @@ namespace LucoaBot.Services
 
             // warm database pool and check migrations
             if (_databaseContext.Database.GetPendingMigrations().Any())
-            {
                 throw new ApplicationException("You need to run the migrations...");
-            }
 
             _metricServer.Start();
 

@@ -58,7 +58,7 @@ namespace LucoaBot.Listeners
                         {
                             var starboardChannel = channel.Guild.GetTextChannel(config.StarBoardChannel.Value);
                             var messageId = message.Id.ToString();
-                            var messages = starboardChannel.GetMessagesAsync(limit: int.MaxValue).Flatten();
+                            var messages = starboardChannel.GetMessagesAsync(int.MaxValue).Flatten();
 
                             var starMessage = await (from m in messages
                                 where m.Author.Id == _client.CurrentUser.Id
@@ -66,10 +66,7 @@ namespace LucoaBot.Listeners
                                           f.Name == "Message ID" && f.Value == messageId)
                                 select m).FirstOrDefaultAsync();
 
-                            if (starMessage != null)
-                            {
-                                await starMessage.DeleteAsync();
-                            }
+                            if (starMessage != null) await starMessage.DeleteAsync();
                         }
                     }
                 }
@@ -106,10 +103,7 @@ namespace LucoaBot.Listeners
 
                 if (count < DefaultThreshold)
                 {
-                    if (starboardMessage != null)
-                    {
-                        await starboardMessage.DeleteAsync();
-                    }
+                    if (starboardMessage != null) await starboardMessage.DeleteAsync();
                 }
                 else
                 {
@@ -134,13 +128,9 @@ namespace LucoaBot.Listeners
                         if (attachment.Url != null)
                         {
                             if (attachment.IsSpoiler())
-                            {
                                 embedBuilder.AddField("SPOILER", attachment.Url);
-                            }
                             else
-                            {
                                 embedBuilder.ImageUrl = attachment.Url;
-                            }
                         }
                     }
                     else if (message.Embeds.Any())
@@ -149,13 +139,8 @@ namespace LucoaBot.Listeners
                         if (embed.Type == EmbedType.Gifv || embed.Type == EmbedType.Image)
                         {
                             if (embed.Image.HasValue)
-                            {
                                 embedBuilder.ImageUrl = embed.Image.Value.Url;
-                            }
-                            else if (embed.Thumbnail.HasValue)
-                            {
-                                embedBuilder.ImageUrl = embed.Thumbnail.Value.Url;
-                            }
+                            else if (embed.Thumbnail.HasValue) embedBuilder.ImageUrl = embed.Thumbnail.Value.Url;
                         }
                     }
 
@@ -182,7 +167,6 @@ namespace LucoaBot.Listeners
         {
             if (reaction.Emote.Name == _emoji.Name
                 && socketChannel is SocketTextChannel)
-            {
                 Task.Run(async () =>
                 {
                     try
@@ -204,9 +188,7 @@ namespace LucoaBot.Listeners
                                 return;
 
                             if (message.Reactions.TryGetValue(_emoji, out var reactionMetadata))
-                            {
                                 await ProcessReaction(config, channel, message, reactionMetadata.ReactionCount);
-                            }
                         }
                     }
                     catch (Exception e)
@@ -214,7 +196,6 @@ namespace LucoaBot.Listeners
                         _logger.LogError(e, "Exception thrown in Client_ReactionAdded");
                     }
                 }).SafeFireAndForget(false);
-            }
 
             return Task.CompletedTask;
         }
@@ -224,7 +205,6 @@ namespace LucoaBot.Listeners
         {
             if (reaction.Emote.Name == _emoji.Name
                 && socketChannel is SocketTextChannel)
-            {
                 Task.Run(async () =>
                 {
                     try
@@ -247,9 +227,7 @@ namespace LucoaBot.Listeners
 
                             var count = 0;
                             if (message.Reactions.TryGetValue(_emoji, out var reactionMetadata))
-                            {
                                 count = reactionMetadata.ReactionCount;
-                            }
 
                             await ProcessReaction(config, channel, message, count);
                         }
@@ -259,7 +237,6 @@ namespace LucoaBot.Listeners
                         _logger.LogError(e, "Exception thrown in Client_ReactionRemoved");
                     }
                 }).SafeFireAndForget(false);
-            }
 
             return Task.CompletedTask;
         }
@@ -268,7 +245,6 @@ namespace LucoaBot.Listeners
             ISocketMessageChannel socketChannel)
         {
             if (socketChannel is SocketTextChannel)
-            {
                 Task.Run(async () =>
                 {
                     try
@@ -297,7 +273,6 @@ namespace LucoaBot.Listeners
                         _logger.LogError(e, "Exception thrown in Client_ReactionsCleared");
                     }
                 }).SafeFireAndForget(false);
-            }
 
             return Task.CompletedTask;
         }

@@ -16,15 +16,7 @@ namespace LucoaBot.Commands
     [Name("Utility")]
     public class UtilityModule : ModuleBase<SocketCommandContext>
     {
-        [SuppressMessage("ReSharper", "InconsistentNaming")]
-        [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
-        private struct XKCDData
-        {
-            public int num { get; set; }
-            public string safe_title { get; set; }
-            public string alt { get; set; }
-            public string img { get; set; }
-        }
+        private const string BaseUrl = "https://discordapp.com/api/oauth2/authorize";
 
         private static readonly List<GuildPermission> KeyPermissions = new List<GuildPermission>
         {
@@ -105,10 +97,7 @@ namespace LucoaBot.Commands
         [RequireContext(ContextType.Guild)]
         public Task UserInfoAsync(IGuildUser user = null)
         {
-            if (user == null)
-            {
-                user = Context.Guild.GetUser(Context.User.Id);
-            }
+            if (user == null) user = Context.Guild.GetUser(Context.User.Id);
 
             var color = user.Status switch
             {
@@ -185,8 +174,6 @@ namespace LucoaBot.Commands
             return Task.FromResult<RuntimeResult>(CommandResult.FromSuccess(message));
         }
 
-        private const string BaseUrl = "https://discordapp.com/api/oauth2/authorize";
-
         [Command("invite")]
         [Summary("Generates an invite link for adding the bot to your Discord")]
         public async Task InviteAsync()
@@ -223,10 +210,7 @@ namespace LucoaBot.Commands
         [Summary("If specified, displays the user's avatar; else, displays your avatar")]
         public async Task AvatarAsync(IUser user = null)
         {
-            if (user == null)
-            {
-                user = Context.User;
-            }
+            if (user == null) user = Context.User;
 
             var avatarUri = new Uri(user.GetAvatarUrl() ?? user.GetDefaultAvatarUrl());
 
@@ -264,6 +248,16 @@ namespace LucoaBot.Commands
             };
 
             await Context.Channel.SendMessageAsync(embed: embedBuilder.Build());
+        }
+
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
+        private struct XKCDData
+        {
+            public int num { get; set; }
+            public string safe_title { get; set; }
+            public string alt { get; set; }
+            public string img { get; set; }
         }
     }
 }

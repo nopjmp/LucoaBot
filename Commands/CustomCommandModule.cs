@@ -13,8 +13,8 @@ namespace LucoaBot.Commands
     [RequireUserPermission(GuildPermission.ManageMessages)]
     public class CustomCommandModule : ModuleBase<SocketCommandContext>
     {
-        private readonly DatabaseContext _database;
         private readonly CommandService _commandService;
+        private readonly DatabaseContext _database;
 
         public CustomCommandModule(DatabaseContext database, CommandService commandService)
         {
