@@ -65,10 +65,9 @@ namespace LucoaBot.Services
                         return;
                     case CommandError.UnknownCommand:
                     {
-                        if (cmdContext is CustomCommandContext
-                        ) // this should always be true, TODO: figure out a better way to remove this
+                        // this should always be true, TODO: figure out a better way to remove this
+                        if (cmdContext is CustomCommandContext customContext)
                         {
-                            var customContext = cmdContext as CustomCommandContext;
                             Task.Run(async () =>
                             {
                                 var commandKey = customContext.Message.Content.Substring(customContext.ArgPos).Trim()
