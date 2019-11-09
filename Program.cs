@@ -57,6 +57,7 @@ namespace LucoaBot
                     {
                         LogLevel = LogSeverity.Info,
                         MessageCacheSize = 500,
+                        GuildSubscriptions = false
                     }));
                     services.AddSingleton(_ => new CommandService(new CommandServiceConfig
                     {
