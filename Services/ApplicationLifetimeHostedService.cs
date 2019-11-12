@@ -82,7 +82,7 @@ namespace LucoaBot.Services
                 Task.Run(async () =>
                 {
                     var lastCount = -1;
-                    while (true)
+                    while (!userCountToken.IsCancellationRequested)
                     {
                         var count = _discordClient.Guilds.Aggregate(0, (a, g) => a + g.MemberCount);
                         if (count != lastCount)

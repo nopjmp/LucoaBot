@@ -56,8 +56,7 @@ namespace LucoaBot
                     services.AddSingleton(_ => new DiscordSocketClient(new DiscordSocketConfig
                     {
                         LogLevel = LogSeverity.Info,
-                        MessageCacheSize = 500,
-                        GuildSubscriptions = false
+                        MessageCacheSize = 500
                     }));
                     services.AddSingleton(_ => new CommandService(new CommandServiceConfig
                     {
