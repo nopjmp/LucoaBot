@@ -47,7 +47,7 @@ namespace LucoaBot.Listeners
 
             if (config.LogChannel.HasValue)
             {
-                var channel = user.Guild.GetTextChannel(config.LogChannel.Value);
+                var channel = user.Guild.GetTextChannel(config.LogChannel.GetValueOrDefault());
                 var update = joined ? "joined" : "left";
                 if (channel != null)
                     await channel.SendMessageAsync(
