@@ -249,9 +249,7 @@ namespace LucoaBot.Commands
 
             await Context.Channel.SendMessageAsync(embed: embedBuilder.Build());
         }
-
-        [SuppressMessage("ReSharper", "InconsistentNaming")]
-        [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
+        
         private struct XKCDData
         {
             public int num { get; set; }

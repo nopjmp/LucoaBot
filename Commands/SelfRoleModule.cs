@@ -42,7 +42,7 @@ namespace LucoaBot.Commands
                     true);
 
             // sort default to the front
-            var fb = embedBuilder.Fields.Find(fb => fb.Name == "default");
+            var fb = embedBuilder.Fields.Find(f => f.Name == "default");
             if (fb != null)
             {
                 embedBuilder.Fields.Remove(fb);
