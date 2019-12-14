@@ -50,7 +50,7 @@ namespace LucoaBot.Listeners
                 {
                     if (socketChannel is SocketTextChannel channel)
                     {
-                        var config = await _context.GuildConfigs.AsQueryable()
+                        var config = await _context.GuildConfigs.AsNoTracking()
                             .Where(e => e.GuildId == channel.Guild.Id)
                             .FirstOrDefaultAsync();
                         if (config?.StarBoardChannel != null && config.StarBoardChannel != channel.Id &&
@@ -171,7 +171,7 @@ namespace LucoaBot.Listeners
                 try
                 {
                     var channel = socketChannel as SocketTextChannel;
-                    var config = await _context.GuildConfigs.AsQueryable()
+                    var config = await _context.GuildConfigs.AsNoTracking()
                         .Where(e => e.GuildId == channel.Guild.Id)
                         .FirstOrDefaultAsync();
 
@@ -209,7 +209,7 @@ namespace LucoaBot.Listeners
                 try
                 {
                     var channel = socketChannel as SocketTextChannel;
-                    var config = await _context.GuildConfigs.AsQueryable()
+                    var config = await _context.GuildConfigs.AsNoTracking()
                         .Where(e => e.GuildId == channel.Guild.Id)
                         .FirstOrDefaultAsync();
 
@@ -249,7 +249,7 @@ namespace LucoaBot.Listeners
                 try
                 {
                     var channel = socketChannel as SocketTextChannel;
-                    var config = await _context.GuildConfigs.AsQueryable()
+                    var config = await _context.GuildConfigs.AsNoTracking()
                         .Where(e => e.GuildId == channel.Guild.Id)
                         .FirstOrDefaultAsync();
 

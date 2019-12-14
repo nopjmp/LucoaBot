@@ -41,7 +41,7 @@ namespace LucoaBot.Listeners
 
         private async Task UserMembershipUpdate(SocketGuildUser user, bool joined)
         {
-            var config = await _context.GuildConfigs.AsQueryable()
+            var config = await _context.GuildConfigs.AsNoTracking()
                 .Where(e => e.GuildId == user.Guild.Id)
                 .FirstOrDefaultAsync();
 

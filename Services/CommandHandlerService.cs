@@ -71,7 +71,7 @@ namespace LucoaBot.Services
                             {
                                 var commandKey = customContext.Message.Content.Substring(customContext.ArgPos).Trim()
                                     .ToLowerInvariant();
-                                var customCommand = await _context.CustomCommands.AsQueryable()
+                                var customCommand = await _context.CustomCommands.AsNoTracking()
                                     .Where(c => c.Command == commandKey)
                                     .FirstOrDefaultAsync();
 
@@ -116,7 +116,7 @@ namespace LucoaBot.Services
                 // TODO: move this into a caching layer
                 var config = await _cache.GetOrCreateAsync("guildconfig:" + context.Guild.Id, async entry =>
                 {
-                    var guildConfig = await _context.GuildConfigs.AsQueryable()
+                    var guildConfig = await _context.GuildConfigs.AsNoTracking()
                         .Where(e => e.GuildId == context.Guild.Id)
                         .FirstOrDefaultAsync();
 

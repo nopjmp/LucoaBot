@@ -24,7 +24,7 @@ namespace LucoaBot.Commands
         [Summary("Lists self assignable roles.")]
         public async Task ListRolesAsync() //(bool textOnly = false)
         {
-            var selfRoles = (await _context.SelfRoles.AsQueryable()
+            var selfRoles = (await _context.SelfRoles.AsNoTracking()
                     .Where(r => r.GuildId == Context.Guild.Id)
                     .ToListAsync())
                 .GroupBy(r => r.Category ?? "default")
@@ -61,7 +61,7 @@ namespace LucoaBot.Commands
         [RequireUserPermission(GuildPermission.ManageRoles)]
         public async Task<RuntimeResult> AddRoleAsync(IRole role, string category = null)
         {
-            var selfRoleCheck = await _context.SelfRoles.AsQueryable()
+            var selfRoleCheck = await _context.SelfRoles.AsNoTracking()
                 .Where(r => r.GuildId == Context.Guild.Id && r.RoleId == role.Id)
                 .AnyAsync();
 
@@ -122,7 +122,7 @@ namespace LucoaBot.Commands
 
             if (selfRoleEntry.Category != null && selfRoleEntry.Category != "default")
             {
-                var removeList = await _context.SelfRoles.AsQueryable()
+                var removeList = await _context.SelfRoles.AsNoTracking()
                     .Where(r => r.GuildId == Context.Guild.Id && r.Category == selfRoleEntry.Category &&
                                 guildUser.RoleIds.Contains(r.RoleId))
                     .Select(r => Context.Guild.GetRole(r.RoleId))
@@ -147,7 +147,7 @@ namespace LucoaBot.Commands
             if (!guildUser.RoleIds.Contains(role.Id))
                 return CommandResult.FromError($"{Context.User.Mention}... You do not have **{role.Name}**.");
 
-            var selfRoleExists = await _context.SelfRoles.AsQueryable()
+            var selfRoleExists = await _context.SelfRoles.AsNoTracking()
                 .Where(x => x.GuildId == Context.Guild.Id && x.RoleId == role.Id)
                 .AnyAsync();
 

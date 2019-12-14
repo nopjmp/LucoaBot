@@ -28,7 +28,7 @@ namespace LucoaBot.Commands
 
             if (!Context.IsPrivate)
             {
-                var config = await _context.GuildConfigs.AsQueryable()
+                var config = await _context.GuildConfigs.AsNoTracking()
                     .Where(e => e.GuildId == Context.Guild.Id)
                     .FirstOrDefaultAsync();
 
