@@ -109,10 +109,14 @@ namespace LucoaBot.Services
                     _userCountTokenSource.Dispose();
                     _userCountTokenSource = null;
                 }
+                
+                // HACK: due to Discord.Net bugs, we are just going to force restart our lifetime.
+
+                StopAsync(CancellationToken.None).SafeFireAndForget(false);
 
                 return Task.CompletedTask;
             };
-
+            
             _discordClient.LatencyUpdated += (_, val) =>
             {
                 LatencyGauge.Set(val);
