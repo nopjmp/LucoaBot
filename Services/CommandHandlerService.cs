@@ -94,6 +94,7 @@ namespace LucoaBot.Services
                     _logger.LogWarning(
                         $"Missing Guild Permission {guild.Id}:{guild.Name} {user.Username}#{user.Discriminator} {channel.Name}: {message.Content}\n" +
                         $"Owner {owner.Username}#{owner.Discriminator})");
+                    return;
                 }
             }
 
