@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Discord.Rest;
 using Discord.WebSocket;
 using LucoaBot.Models;
 using Microsoft.EntityFrameworkCore;
@@ -52,6 +53,23 @@ namespace LucoaBot.Services
             IResult result)
         {
             if (result == null) return;
+            
+            if (cmdContext.Guild != null)
+            {
+                // TODO: proper logging and reporting
+                var guildUser = await cmdContext.Guild.GetCurrentUserAsync();
+                if (!guildUser.GuildPermissions.Has(GuildPermission.SendMessages))
+                    return;
+
+                ChannelPermissions perms;
+                if (cmdContext.Channel is IGuildChannel guildChannel)
+                    perms = guildUser.GetPermissions(guildChannel);
+                else
+                    perms = ChannelPermissions.All(cmdContext.Channel);
+
+                if (!perms.Has(ChannelPermission.SendMessages))
+                    return;
+            }
 
             if (!result.IsSuccess)
             {
