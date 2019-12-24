@@ -6,6 +6,7 @@ using Discord.WebSocket;
 using LucoaBot.Models;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Prometheus;
 
@@ -14,7 +15,7 @@ namespace LucoaBot.Listeners
     public class StarboardListener
     {
         private readonly ILogger<StarboardListener> _logger;
-        private readonly DatabaseContext _context;
+        private readonly ServiceProvider _serviceProvider;
         private readonly DiscordSocketClient _client;
 
         private static readonly Counter StarboardMessageCounter =
@@ -26,11 +27,12 @@ namespace LucoaBot.Listeners
 #else
         private const int DefaultThreshold = 1;
 #endif
-        public StarboardListener(ILogger<StarboardListener> logger, DiscordSocketClient client, DatabaseContext context)
+        public StarboardListener(ILogger<StarboardListener> logger, DiscordSocketClient client,
+            ServiceProvider serviceProvider)
         {
             _logger = logger;
             _client = client;
-            _context = context;
+            _serviceProvider = serviceProvider;
         }
 
         public void Initialize()
@@ -50,7 +52,8 @@ namespace LucoaBot.Listeners
                 {
                     if (socketChannel is SocketTextChannel channel)
                     {
-                        var config = await _context.GuildConfigs.AsNoTracking()
+                        await using var context = _serviceProvider.GetService<DatabaseContext>();
+                        var config = await context.GuildConfigs.AsNoTracking()
                             .Where(e => e.GuildId == channel.Guild.Id)
                             .FirstOrDefaultAsync();
                         if (config?.StarBoardChannel != null && config.StarBoardChannel != channel.Id &&
@@ -171,7 +174,8 @@ namespace LucoaBot.Listeners
                 try
                 {
                     var channel = socketChannel as SocketTextChannel;
-                    var config = await _context.GuildConfigs.AsNoTracking()
+                    await using var context = _serviceProvider.GetService<DatabaseContext>();
+                    var config = await context.GuildConfigs.AsNoTracking()
                         .Where(e => e.GuildId == channel.Guild.Id)
                         .FirstOrDefaultAsync();
 
@@ -209,7 +213,8 @@ namespace LucoaBot.Listeners
                 try
                 {
                     var channel = socketChannel as SocketTextChannel;
-                    var config = await _context.GuildConfigs.AsNoTracking()
+                    await using var context = _serviceProvider.GetService<DatabaseContext>();
+                    var config = await context.GuildConfigs.AsNoTracking()
                         .Where(e => e.GuildId == channel.Guild.Id)
                         .FirstOrDefaultAsync();
 
@@ -249,7 +254,8 @@ namespace LucoaBot.Listeners
                 try
                 {
                     var channel = socketChannel as SocketTextChannel;
-                    var config = await _context.GuildConfigs.AsNoTracking()
+                    await using var context = _serviceProvider.GetService<DatabaseContext>();
+                    var config = await context.GuildConfigs.AsNoTracking()
                         .Where(e => e.GuildId == channel.Guild.Id)
                         .FirstOrDefaultAsync();
 
