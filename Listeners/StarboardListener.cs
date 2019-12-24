@@ -45,7 +45,8 @@ namespace LucoaBot.Listeners
 
         private async Task<ulong?> GetStarboardChannel(IGuild guild)
         {
-            await using var context = _serviceProvider.GetService<DatabaseContext>();
+            using var scope = _serviceProvider.CreateScope();
+            await using var context = scope.ServiceProvider.GetService<DatabaseContext>();
             var config = await context.GuildConfigs.AsNoTracking()
                 .Where(e => e.GuildId == guild.Id)
                 .FirstOrDefaultAsync();
