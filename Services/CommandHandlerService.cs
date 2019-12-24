@@ -4,11 +4,11 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using Discord.Rest;
 using Discord.WebSocket;
 using LucoaBot.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Prometheus;
 
 namespace LucoaBot.Services
@@ -27,15 +27,17 @@ namespace LucoaBot.Services
         private readonly CommandService _commands;
         private readonly DatabaseContext _context;
         private readonly IServiceProvider _services;
-
+        private readonly ILogger<CommandHandlerService> _logger;
+        
         public CommandHandlerService(IServiceProvider services, DiscordSocketClient client, CommandService commands,
-            DatabaseContext context, IMemoryCache cache)
+            DatabaseContext context, IMemoryCache cache, ILogger<CommandHandlerService> logger)
         {
             _services = services;
             _client = client;
             _commands = commands;
             _context = context;
             _cache = cache;
+            _logger = logger;
         }
 
         public async Task InitializeAsync()
@@ -54,12 +56,27 @@ namespace LucoaBot.Services
         {
             if (result == null) return;
             
+            if (result.IsSuccess)
+                CommandCount.WithLabels("success").Inc();
+            if (!result.IsSuccess && result.Error != CommandError.UnknownCommand)
+                CommandCount.WithLabels("failure").Inc();
+            
             if (cmdContext.Guild != null)
             {
-                // TODO: proper logging and reporting
+                // TODO: make universal error reporting system
                 var guildUser = await cmdContext.Guild.GetCurrentUserAsync();
                 if (!guildUser.GuildPermissions.Has(GuildPermission.SendMessages))
+                {
+                    var user = cmdContext.User;
+                    var channel = cmdContext.Channel;
+                    var guild = cmdContext.Guild;
+                    var message = cmdContext.Message;
+                    var owner = await guild.GetOwnerAsync();
+                    _logger.LogWarning(
+                        $"Missing Guild Permission {guild.Id}:{guild.Name} {user.Username}#{user.Discriminator} {channel.Name}: {message.Content}\n" +
+                        $"Owner {owner.Username}#{owner.Discriminator})");
                     return;
+                }
 
                 ChannelPermissions perms;
                 if (cmdContext.Channel is IGuildChannel guildChannel)
@@ -68,7 +85,16 @@ namespace LucoaBot.Services
                     perms = ChannelPermissions.All(cmdContext.Channel);
 
                 if (!perms.Has(ChannelPermission.SendMessages))
-                    return;
+                {
+                    var user = cmdContext.User;
+                    var channel = cmdContext.Channel;
+                    var guild = cmdContext.Guild;
+                    var message = cmdContext.Message;
+                    var owner = await guild.GetOwnerAsync();
+                    _logger.LogWarning(
+                        $"Missing Guild Permission {guild.Id}:{guild.Name} {user.Username}#{user.Discriminator} {channel.Name}: {message.Content}\n" +
+                        $"Owner {owner.Username}#{owner.Discriminator})");
+                }
             }
 
             if (!result.IsSuccess)
@@ -108,10 +134,6 @@ namespace LucoaBot.Services
                         return;
                     }
                 }
-            }
-            else // this is a successful command
-            {
-                CommandCount.WithLabels("success").Inc();
             }
 
             if (!string.IsNullOrEmpty(result.ErrorReason))
