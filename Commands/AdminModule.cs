@@ -121,10 +121,14 @@ namespace LucoaBot.Commands
         [Command("leaveguild")]
         [Summary("Leaves a Guild")]
         [RequireOwner]
-        public async Task LeaveGuildAsync(IGuild guild)
+        public async Task LeaveGuildAsync(ulong guildId)
         {
-            await guild.LeaveAsync();
-            await ReplyAsync("Left guild " + guild.Name);
+            var guild = Context.Client.GetGuild(guildId);
+            if (guild != null)
+            {
+                await guild.LeaveAsync();
+                await ReplyAsync($"Left guild {guildId} {guild.Name}");
+            }
         }
     }
 }
