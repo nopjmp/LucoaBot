@@ -8,6 +8,7 @@ using Discord.WebSocket;
 using LucoaBot.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Prometheus;
 
@@ -25,17 +26,15 @@ namespace LucoaBot.Services
         private readonly IMemoryCache _cache;
         private readonly DiscordSocketClient _client;
         private readonly CommandService _commands;
-        private readonly DatabaseContext _context;
         private readonly IServiceProvider _services;
         private readonly ILogger<CommandHandlerService> _logger;
         
-        public CommandHandlerService(IServiceProvider services, DiscordSocketClient client, CommandService commands,
-            DatabaseContext context, IMemoryCache cache, ILogger<CommandHandlerService> logger)
+        public CommandHandlerService(IServiceProvider services, DiscordSocketClient client, CommandService commands, 
+            IMemoryCache cache, ILogger<CommandHandlerService> logger)
         {
             _services = services;
             _client = client;
             _commands = commands;
-            _context = context;
             _cache = cache;
             _logger = logger;
         }
@@ -116,7 +115,10 @@ namespace LucoaBot.Services
                             {
                                 var commandKey = customContext.Message.Content.Substring(customContext.ArgPos).Trim()
                                     .ToLowerInvariant();
-                                var customCommand = await _context.CustomCommands.AsNoTracking()
+
+                                using var scope = _services.CreateScope();
+                                var context = scope.ServiceProvider.GetService<DatabaseContext>();
+                                var customCommand = await context.CustomCommands.AsNoTracking()
                                     .Where(c => c.Command == commandKey)
                                     .FirstOrDefaultAsync();
 
@@ -150,42 +152,42 @@ namespace LucoaBot.Services
 
             var prefix = ".";
 
-            var context = new CustomCommandContext(_client, message);
+            var commandContext = new CustomCommandContext(_client, message);
 
-            if (!context.IsPrivate)
+            if (!commandContext.IsPrivate)
             {
-                // TODO: move this into a caching layer
-                var config = await _cache.GetOrCreateAsync("guildconfig:" + context.Guild.Id, async entry =>
+                // we only want to cache the prefix to keep memory low
+                prefix = await _cache.GetOrCreateAsync("guildconfig:" + commandContext.Guild.Id, async entry =>
                 {
-                    var guildConfig = await _context.GuildConfigs.AsNoTracking()
-                        .Where(e => e.GuildId == context.Guild.Id)
+                    using var scope = _services.CreateScope();
+                    var databaseContext = scope.ServiceProvider.GetService<DatabaseContext>();
+                    
+                    var guildConfig = await databaseContext.GuildConfigs.AsNoTracking()
+                        .Where(e => e.GuildId == commandContext.Guild.Id)
                         .FirstOrDefaultAsync();
 
-                    if (guildConfig == null)
+                    if (guildConfig != null) return guildConfig.Prefix;
+                    
+                    guildConfig = new GuildConfig
                     {
-                        guildConfig = new GuildConfig
-                        {
-                            GuildId = context.Guild.Id,
-                            Prefix = "."
-                        };
+                        GuildId = commandContext.Guild.Id,
+                        Prefix = "."
+                    };
 
-                        _context.Add(guildConfig);
-                        _context.SaveChangesAsync().SafeFireAndForget(false);
-                    }
-
-                    return guildConfig;
+                    await databaseContext.AddAsync(guildConfig);
+                    await databaseContext.SaveChangesAsync();
+                    
+                    return ".";
                 });
-
-                prefix = config.Prefix;
             }
 
             var argPos = 0;
             if (!message.HasStringPrefix(prefix, ref argPos))
                 return;
 
-            context.ArgPos = argPos;
+            commandContext.ArgPos = argPos;
 
-            await _commands.ExecuteAsync(context, argPos, _services);
+            await _commands.ExecuteAsync(commandContext, argPos, _services);
         }
     }
 }

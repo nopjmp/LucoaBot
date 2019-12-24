@@ -95,7 +95,7 @@ namespace LucoaBot.Commands
                 config.Prefix = prefix;
                 await _context.SaveChangesAsync();
 
-                _cache.Set("guildconfig:" + Context.Guild.Id, config);
+                _cache.Set("guildconfig:" + Context.Guild.Id, prefix);
 
                 await ReplyAsync(
                     $"{Context.User.Username}#{Context.User.Discriminator} has changed the prefix to `{prefix}`");
