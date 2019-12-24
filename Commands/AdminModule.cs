@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -99,6 +100,31 @@ namespace LucoaBot.Commands
                 await ReplyAsync(
                     $"{Context.User.Username}#{Context.User.Discriminator} has changed the prefix to `{prefix}`");
             }
+        }
+
+        [Command("guilds")]
+        [Summary("Lists the Guilds the bot is connected to.")]
+        [RequireOwner]
+        public async Task GuildsAsync()
+        {
+            var sb = new StringBuilder();
+            foreach (var guild in Context.Client.Guilds)
+            {
+                sb.Append(guild.Id);
+                sb.Append(":");
+                sb.AppendLine(guild.Name);
+            }
+
+            await ReplyAsync(sb.ToString());
+        }
+
+        [Command("leaveguild")]
+        [Summary("Leaves a Guild")]
+        [RequireOwner]
+        public async Task LeaveGuildAsync(IGuild guild)
+        {
+            await guild.LeaveAsync();
+            await ReplyAsync("Left guild " + guild.Name);
         }
     }
 }
