@@ -92,7 +92,7 @@ namespace LucoaBot.Services
                     var message = cmdContext.Message;
                     var owner = await guild.GetOwnerAsync();
                     _logger.LogWarning(
-                        $"Missing Guild Permission {guild.Id}:{guild.Name} {user.Username}#{user.Discriminator} {channel.Name}: {message.Content}\n" +
+                        $"Missing Channel Permission {guild.Id}:{guild.Name} {user.Username}#{user.Discriminator} {channel.Name}: {message.Content}\n" +
                         $"Owner {owner.Username}#{owner.Discriminator})");
                     return;
                 }

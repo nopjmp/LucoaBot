@@ -158,17 +158,29 @@ namespace LucoaBot.Commands
 
         [Command("stats")]
         [Summary("Displays the bot statistics")]
-        public Task<RuntimeResult> StatsAsync()
+        public async Task StatsAsync()
         {
             var uptime = DateTime.UtcNow - Process.GetCurrentProcess().StartTime.ToUniversalTime();
-            var message =
-                "📊📈 **Stats**\n" +
-                $"🔥 **Uptime:** {uptime.ToHumanTimeString(2)}\n" +
-                $"🏓 **Ping:** {Context.Client.Latency}ms\n" +
-                $"🛡 **Guilds:** {Context.Client.Guilds.Count()}\n" +
-                $"😊 **Total Members:** {Context.Client.Guilds.Aggregate(0, (a, g) => a + g.MemberCount)}";
+            var application = await Context.Client.GetApplicationInfoAsync();
 
-            return Task.FromResult<RuntimeResult>(CommandResult.FromSuccess(message));
+            var embedBuilder = new EmbedBuilder
+            {
+                Color = new Color(3447003),
+                Author = new EmbedAuthorBuilder
+                {
+                    Name = $"LucoaBot",
+                    IconUrl = Context.Client.CurrentUser.GetAvatarUrl()
+                }
+            };
+
+            embedBuilder.AddField("Owner", $"{application.Owner.Username}#{application.Owner.Discriminator}")
+                .AddField("Uptime", uptime.ToHumanTimeString(2))
+                .AddField("Bot ID", Context.Client.CurrentUser.Id)
+                .AddField("Ping", $"{Context.Client.Latency}ms")
+                .AddField("Guilds", Context.Client.Guilds.Count())
+                .AddField("Total Members", Context.Client.Guilds.Aggregate(0, (a, g) => a + g.MemberCount));
+
+            await ReplyAsync(embed: embedBuilder.Build());
         }
 
         [Command("invite")]
