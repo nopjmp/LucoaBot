@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
-using LucoaBot.Models;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -44,6 +43,16 @@ namespace LucoaBot.Listeners
             _client.ReactionsCleared += Client_ReactionsCleared;
         }
 
+        private async Task<ulong?> GetStarboardChannel(IGuild guild)
+        {
+            await using var context = _serviceProvider.GetService<DatabaseContext>();
+            var config = await context.GuildConfigs.AsNoTracking()
+                .Where(e => e.GuildId == guild.Id)
+                .FirstOrDefaultAsync();
+
+            return config.StarBoardChannel;
+        }
+
         private Task Client_MessageDeleted(Cacheable<IMessage, ulong> message, ISocketMessageChannel socketChannel)
         {
             Task.Run(async () =>
@@ -52,14 +61,11 @@ namespace LucoaBot.Listeners
                 {
                     if (socketChannel is SocketTextChannel channel)
                     {
-                        await using var context = _serviceProvider.GetService<DatabaseContext>();
-                        var config = await context.GuildConfigs.AsNoTracking()
-                            .Where(e => e.GuildId == channel.Guild.Id)
-                            .FirstOrDefaultAsync();
-                        if (config?.StarBoardChannel != null && config.StarBoardChannel != channel.Id &&
-                            config.StarBoardChannel != 0)
+                        var starboardChannelId = await GetStarboardChannel(channel.Guild);
+                        if (starboardChannelId != null && starboardChannelId != channel.Id &&
+                            starboardChannelId != 0)
                         {
-                            var starboardChannel = channel.Guild.GetTextChannel(config.StarBoardChannel.Value);
+                            var starboardChannel = channel.Guild.GetTextChannel(starboardChannelId.Value);
                             var messageId = message.Id.ToString();
                             var messages = starboardChannel.GetMessagesAsync(int.MaxValue).Flatten();
 
@@ -94,12 +100,12 @@ namespace LucoaBot.Listeners
                 select m).FirstOrDefaultAsync();
         }
 
-        private async Task ProcessReaction(GuildConfig config, SocketTextChannel channel, IUserMessage message,
+        private async Task ProcessReaction(ulong? starboardChannelId, SocketTextChannel channel, IUserMessage message,
             int count)
         {
-            if (config.StarBoardChannel == null) return;
+            if (starboardChannelId == null) return;
 
-            var starboardChannel = channel.Guild.GetTextChannel(config.StarBoardChannel.Value);
+            var starboardChannel = channel.Guild.GetTextChannel(starboardChannelId.Value);
             if (starboardChannel != null)
             {
                 var starboardMessage = await FindStarPost(starboardChannel, message) as IUserMessage;
@@ -173,25 +179,24 @@ namespace LucoaBot.Listeners
             {
                 try
                 {
-                    var channel = socketChannel as SocketTextChannel;
-                    await using var context = _serviceProvider.GetService<DatabaseContext>();
-                    var config = await context.GuildConfigs.AsNoTracking()
-                        .Where(e => e.GuildId == channel.Guild.Id)
-                        .FirstOrDefaultAsync();
-
-                    // only process if the starboard channel has a value and it's not in the starboard.
-                    if (channel != null && config.StarBoardChannel.HasValue &&
-                        channel.Id != config.StarBoardChannel)
+                    if (socketChannel is SocketTextChannel channel)
                     {
-                        var message = await cacheMessage.GetOrDownloadAsync();
+                        var starboardChannelId = await GetStarboardChannel(channel.Guild);
 
-                        // only check the last days of messages
-                        var dateThreshold = DateTimeOffset.Now.AddDays(-1);
-                        if (message.CreatedAt < dateThreshold)
-                            return;
+                        // only process if the starboard channel has a value and it's not in the starboard.
+                        if (starboardChannelId.HasValue && channel.Id != starboardChannelId)
+                        {
+                            var message = await cacheMessage.GetOrDownloadAsync();
 
-                        if (message.Reactions.TryGetValue(_emoji, out var reactionMetadata))
-                            await ProcessReaction(config, channel, message, reactionMetadata.ReactionCount);
+                            // only check the last days of messages
+                            var dateThreshold = DateTimeOffset.Now.AddDays(-1);
+                            if (message.CreatedAt < dateThreshold)
+                                return;
+
+                            if (message.Reactions.TryGetValue(_emoji, out var reactionMetadata))
+                                await ProcessReaction(starboardChannelId, channel, message,
+                                    reactionMetadata.ReactionCount);
+                        }
                     }
                 }
                 catch (Exception e)
@@ -207,33 +212,31 @@ namespace LucoaBot.Listeners
             ISocketMessageChannel socketChannel, SocketReaction reaction)
         {
             if (reaction.Emote.Name != _emoji.Name || !(socketChannel is SocketTextChannel)) return Task.CompletedTask;
-            
+
             Task.Run(async () =>
             {
                 try
                 {
-                    var channel = socketChannel as SocketTextChannel;
-                    await using var context = _serviceProvider.GetService<DatabaseContext>();
-                    var config = await context.GuildConfigs.AsNoTracking()
-                        .Where(e => e.GuildId == channel.Guild.Id)
-                        .FirstOrDefaultAsync();
-
-                    // only process if the starboard channel has a value and it's not in the starboard.
-                    if (channel != null && config.StarBoardChannel.HasValue &&
-                        channel.Id != config.StarBoardChannel)
+                    if (socketChannel is SocketTextChannel channel)
                     {
-                        var message = await cacheMessage.GetOrDownloadAsync();
+                        var starboardChannelId = await GetStarboardChannel(channel.Guild);
 
-                        // only check the last day of messages
-                        var dateThreshold = DateTimeOffset.Now.AddDays(-1);
-                        if (message.CreatedAt < dateThreshold)
-                            return;
+                        // only process if the starboard channel has a value and it's not in the starboard.
+                        if (starboardChannelId.HasValue && channel.Id != starboardChannelId)
+                        {
+                            var message = await cacheMessage.GetOrDownloadAsync();
 
-                        var count = 0;
-                        if (message.Reactions.TryGetValue(_emoji, out var reactionMetadata))
-                            count = reactionMetadata.ReactionCount;
+                            // only check the last day of messages
+                            var dateThreshold = DateTimeOffset.Now.AddDays(-1);
+                            if (message.CreatedAt < dateThreshold)
+                                return;
 
-                        await ProcessReaction(config, channel, message, count);
+                            var count = 0;
+                            if (message.Reactions.TryGetValue(_emoji, out var reactionMetadata))
+                                count = reactionMetadata.ReactionCount;
+
+                            await ProcessReaction(starboardChannelId, channel, message, count);
+                        }
                     }
                 }
                 catch (Exception e)
@@ -253,24 +256,23 @@ namespace LucoaBot.Listeners
             {
                 try
                 {
-                    var channel = socketChannel as SocketTextChannel;
-                    await using var context = _serviceProvider.GetService<DatabaseContext>();
-                    var config = await context.GuildConfigs.AsNoTracking()
-                        .Where(e => e.GuildId == channel.Guild.Id)
-                        .FirstOrDefaultAsync();
-
-                    // only process if the starboard channel has a value and it's not in the starboard.
-                    if (channel != null && config.StarBoardChannel.HasValue &&
-                        channel.Id != config.StarBoardChannel)
+                    if (socketChannel is SocketTextChannel channel)
                     {
-                        var message = await cacheMessage.GetOrDownloadAsync();
+                        var starboardChannelId = await GetStarboardChannel(channel.Guild);
 
-                        // only check the last day of messages
-                        var dateThreshold = DateTimeOffset.Now.AddDays(-1);
-                        if (message.CreatedAt < dateThreshold)
-                            return;
+                        // only process if the starboard channel has a value and it's not in the starboard.
+                        if (starboardChannelId.HasValue &&
+                            channel.Id != starboardChannelId)
+                        {
+                            var message = await cacheMessage.GetOrDownloadAsync();
 
-                        await ProcessReaction(config, channel, message, 0);
+                            // only check the last day of messages
+                            var dateThreshold = DateTimeOffset.Now.AddDays(-1);
+                            if (message.CreatedAt < dateThreshold)
+                                return;
+
+                            await ProcessReaction(starboardChannelId, channel, message, 0);
+                        }
                     }
                 }
                 catch (Exception e)
