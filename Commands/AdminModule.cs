@@ -12,6 +12,7 @@ namespace LucoaBot.Commands
 {
     [Name("Admin")]
     [RequireContext(ContextType.Guild)]
+    [RequireBotPermission(ChannelPermission.SendMessages)]
     public class AdminModule : ModuleBase<SocketCommandContext>
     {
         private readonly IMemoryCache _cache;
@@ -43,7 +44,7 @@ namespace LucoaBot.Commands
                 await ReplyAsync($"Log channel set to {channel.Mention}");
             }
 
-            _context.SaveChangesAsync().SafeFireAndForget(false);
+            await _context.SaveChangesAsync();
         }
 
         [Command("prune")]
@@ -57,11 +58,11 @@ namespace LucoaBot.Commands
                 case ITextChannel c:
                 {
                     var messages = await c.GetMessagesAsync(num + 1).FlattenAsync();
-                    c.DeleteMessagesAsync(messages).SafeFireAndForget(false);
+                    await c.DeleteMessagesAsync(messages);
                     var message = await ReplyAsync($"Bulk deleted {num} messages.");
                     await Task.Delay(TimeSpan.FromSeconds(5));
 
-                    message.DeleteAsync().SafeFireAndForget(false);
+                    await message.DeleteAsync();
                 }
                     break;
                 default:
@@ -69,7 +70,7 @@ namespace LucoaBot.Commands
                     var message = await ReplyAsync("We can't delete messages here.");
                     await Task.Delay(TimeSpan.FromSeconds(5));
 
-                    message.DeleteAsync().SafeFireAndForget(false);
+                    await message.DeleteAsync();
                 }
                     break;
             }
@@ -82,7 +83,7 @@ namespace LucoaBot.Commands
         {
             if (string.IsNullOrWhiteSpace(prefix) || prefix.Length > 16)
             {
-                ReplyAsync("Prefix must be between 1 and 16 characters.").SafeFireAndForget(false);
+                await ReplyAsync("Prefix must be between 1 and 16 characters.");
             }
             else
             {
@@ -91,12 +92,12 @@ namespace LucoaBot.Commands
                     .SingleOrDefaultAsync();
 
                 config.Prefix = prefix;
-                _context.SaveChangesAsync().SafeFireAndForget(false);
+                await _context.SaveChangesAsync();
 
                 _cache.Set("guildconfig:" + Context.Guild.Id, config);
 
-                ReplyAsync($"{Context.User.Username}#{Context.User.Discriminator} has changed the prefix to `{prefix}`")
-                    .SafeFireAndForget(false);
+                await ReplyAsync(
+                    $"{Context.User.Username}#{Context.User.Discriminator} has changed the prefix to `{prefix}`");
             }
         }
     }

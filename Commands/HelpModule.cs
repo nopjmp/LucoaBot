@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace LucoaBot.Commands
 {
     [Name("Help")]
+    [RequireBotPermission(ChannelPermission.SendMessages)]
     public class HelpModule : ModuleBase<SocketCommandContext>
     {
         private readonly DatabaseContext _context;
@@ -69,7 +70,7 @@ namespace LucoaBot.Commands
                     });
             }
 
-            ReplyAsync("", false, builder.Build()).SafeFireAndForget(false);
+            await ReplyAsync("", false, builder.Build());
         }
     }
 }

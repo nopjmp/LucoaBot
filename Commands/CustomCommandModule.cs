@@ -11,6 +11,7 @@ namespace LucoaBot.Commands
     [Name("CustomCommands")]
     [RequireContext(ContextType.Guild)]
     [RequireUserPermission(GuildPermission.ManageMessages)]
+    [RequireBotPermission(ChannelPermission.SendMessages)]
     public class CustomCommandModule : ModuleBase<SocketCommandContext>
     {
         private readonly CommandService _commandService;

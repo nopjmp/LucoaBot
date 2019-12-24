@@ -12,6 +12,7 @@ namespace LucoaBot.Commands
     [Name("Starboard")]
     [RequireContext(ContextType.Guild)]
     [RequireUserPermission(GuildPermission.ManageGuild)]
+    [RequireBotPermission(ChannelPermission.SendMessages)]
     public class StarboardModule : ModuleBase<SocketCommandContext>
     {
         private readonly DatabaseContext _context;
@@ -40,7 +41,7 @@ namespace LucoaBot.Commands
                 await ReplyAsync($"Starboard set to {channel.Mention}");
             }
 
-            _context.SaveChangesAsync().SafeFireAndForget(false);
+            await _context.SaveChangesAsync();
         }
     }
 }

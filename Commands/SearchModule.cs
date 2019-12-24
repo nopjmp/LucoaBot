@@ -2,12 +2,14 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web;
+using Discord;
 using Discord.Commands;
 
 namespace LucoaBot.Commands
 {
     [Name("Search")]
     [Group("search")]
+    [RequireBotPermission(ChannelPermission.SendMessages)]
     public class SearchModule : ModuleBase<SocketCommandContext>
     {
         private readonly IHttpClientFactory _httpClientFactory;

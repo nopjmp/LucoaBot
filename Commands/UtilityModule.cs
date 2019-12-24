@@ -13,6 +13,7 @@ using Discord.Commands;
 namespace LucoaBot.Commands
 {
     [Name("Utility")]
+    [RequireBotPermission(ChannelPermission.SendMessages)]
     public class UtilityModule : ModuleBase<SocketCommandContext>
     {
         private const string BaseUrl = "https://discordapp.com/api/oauth2/authorize";
@@ -35,16 +36,14 @@ namespace LucoaBot.Commands
         [Summary("Displays your Discord snowflake.")]
         public Task IdAsync()
         {
-            ReplyAsync($"ID: {Context.User.Id}").SafeFireAndForget(false);
-            return Task.CompletedTask;
+            return ReplyAsync($"ID: {Context.User.Id}");
         }
 
         [Command("ping")]
         [Summary("Returns the latency of the bot to Discord.")]
         public Task PingAsync()
         {
-            ReplyAsync($"Pong! {Context.Client.Latency}ms").SafeFireAndForget(false);
-            return Task.CompletedTask;
+            return ReplyAsync($"Pong! {Context.Client.Latency}ms");
         }
 
         [Command("serverinfo")]
@@ -88,7 +87,7 @@ namespace LucoaBot.Commands
 
             builder.WithFields(
                 fields.Select(e => new EmbedFieldBuilder {Name = e.Key, Value = e.Value, IsInline = true}));
-            ReplyAsync("", false, builder.Build()).SafeFireAndForget(false);
+            await ReplyAsync("", false, builder.Build());
         }
 
         [Command("userinfo")]
@@ -154,8 +153,7 @@ namespace LucoaBot.Commands
                     builder.AddField("Key Permissions", string.Join(" ", perms), true);
             }
 
-            ReplyAsync("", false, builder.Build()).SafeFireAndForget(false);
-            return Task.CompletedTask;
+            return ReplyAsync("", false, builder.Build());
         }
 
         [Command("stats")]
