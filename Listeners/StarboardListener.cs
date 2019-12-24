@@ -15,7 +15,7 @@ namespace LucoaBot.Listeners
     public class StarboardListener
     {
         private readonly ILogger<StarboardListener> _logger;
-        private readonly ServiceProvider _serviceProvider;
+        private readonly IServiceProvider _serviceProvider;
         private readonly DiscordSocketClient _client;
 
         private static readonly Counter StarboardMessageCounter =
@@ -28,7 +28,7 @@ namespace LucoaBot.Listeners
         private const int DefaultThreshold = 1;
 #endif
         public StarboardListener(ILogger<StarboardListener> logger, DiscordSocketClient client,
-            ServiceProvider serviceProvider)
+            IServiceProvider serviceProvider)
         {
             _logger = logger;
             _client = client;
