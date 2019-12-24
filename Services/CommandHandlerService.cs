@@ -186,9 +186,8 @@ namespace LucoaBot.Services
                 return;
 
             commandContext.ArgPos = argPos;
-            
-            using var scope = _services.CreateScope();
-            await _commands.ExecuteAsync(commandContext, argPos, scope.ServiceProvider);
+
+            await _commands.ExecuteAsync(commandContext, argPos, _services);
         }
     }
 }
