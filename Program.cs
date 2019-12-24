@@ -49,7 +49,7 @@ namespace LucoaBot
                                 AllowAutoRedirect = false
                             });
 
-                    services.AddSingleton<IMetricServer>(_ => new MetricServer("localhost", 9091));
+                    services.AddSingleton<IMetricServer>(_ => new MetricServer(9091));
 
                     services.AddHostedService<ApplicationLifetimeHostedService>();
 
