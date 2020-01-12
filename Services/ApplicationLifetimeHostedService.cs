@@ -37,6 +37,8 @@ namespace LucoaBot.Services
         private readonly StarboardListener _starboardListener;
         private readonly TemperatureListener _temperatureListener;
 
+        private readonly RedisQueue _redisQueue;
+
         private CancellationTokenSource _userCountTokenSource;
 
         public ApplicationLifetimeHostedService(
@@ -49,6 +51,7 @@ namespace LucoaBot.Services
             LogListener logListener,
             StarboardListener starboardListener,
             TemperatureListener temperatureListener,
+            RedisQueue redisQueue,
             DatabaseContext databaseContext)
         {
             _configuration = configuration;
@@ -60,6 +63,7 @@ namespace LucoaBot.Services
             _logListener = logListener;
             _starboardListener = starboardListener;
             _temperatureListener = temperatureListener;
+            _redisQueue = redisQueue;
             _databaseContext = databaseContext;
         }
 
@@ -71,7 +75,7 @@ namespace LucoaBot.Services
             if (_databaseContext.Database.GetPendingMigrations().Any())
                 throw new ApplicationException("You need to run the migrations...");
 
-            _metricServer.Start();
+            //_metricServer.Start();
 
             _discordClient.Connected += () =>
             {
@@ -134,6 +138,8 @@ namespace LucoaBot.Services
             _logListener.Initialize();
             _starboardListener.Initialize();
             _temperatureListener.Initialize();
+            
+            _redisQueue.Start();
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)

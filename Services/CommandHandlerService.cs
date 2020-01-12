@@ -22,20 +22,22 @@ namespace LucoaBot.Services
 
         private static readonly Counter CommandCount =
             Metrics.CreateCounter("discord_command_count", "Executed commands", "result");
-
-        private readonly IMemoryCache _cache;
+        
         private readonly DiscordSocketClient _client;
         private readonly CommandService _commands;
         private readonly IServiceProvider _services;
+        private readonly IMemoryCache _cache;
+        private readonly RedisQueue _redisQueue;
         private readonly ILogger<CommandHandlerService> _logger;
-        
-        public CommandHandlerService(IServiceProvider services, DiscordSocketClient client, CommandService commands, 
-            IMemoryCache cache, ILogger<CommandHandlerService> logger)
+
+        public CommandHandlerService(IServiceProvider services, DiscordSocketClient client, CommandService commands,
+            IMemoryCache cache, RedisQueue redisQueue, ILogger<CommandHandlerService> logger)
         {
             _services = services;
             _client = client;
             _commands = commands;
             _cache = cache;
+            _redisQueue = redisQueue;
             _logger = logger;
         }
 
@@ -47,19 +49,19 @@ namespace LucoaBot.Services
             await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
 
             _commands.CommandExecuted += OnCommandExecutedAsync;
-            _client.MessageReceived += HandleCommandAsync;
+            _redisQueue.MessageReceived += HandleCommandAsync;
         }
 
         private async Task OnCommandExecutedAsync(Optional<CommandInfo> command, ICommandContext cmdContext,
             IResult result)
         {
             if (result == null) return;
-            
+
             if (result.IsSuccess)
                 CommandCount.WithLabels("success").Inc();
             if (!result.IsSuccess && result.Error != CommandError.UnknownCommand)
                 CommandCount.WithLabels("failure").Inc();
-            
+
             if (cmdContext.Guild != null)
             {
                 // TODO: make universal error reporting system
@@ -110,7 +112,7 @@ namespace LucoaBot.Services
                     case CommandError.UnknownCommand:
                     {
                         // this should always be true, TODO: figure out a better way to remove this
-                        if (cmdContext is CustomCommandContext customContext)
+                        if (cmdContext is CustomContext customContext)
                             Task.Run(async () =>
                             {
                                 var commandKey = customContext.Message.Content.Substring(customContext.ArgPos).Trim()
@@ -143,51 +145,46 @@ namespace LucoaBot.Services
                 await cmdContext.Channel.SendMessageAsync(result.ErrorReason);
         }
 
-        public async Task HandleCommandAsync(SocketMessage socketMessage)
+        private async Task HandleCommandAsync(CustomContext context)
         {
             MessageSeenCount.Inc();
 
-            // don't process system or bot messages
-            if (!(socketMessage is SocketUserMessage message) || message.Author.IsBot) return;
-
             var prefix = ".";
 
-            var commandContext = new CustomCommandContext(_client, message);
-
-            if (!commandContext.IsPrivate)
+            if (!context.IsPrivate)
             {
                 // we only want to cache the prefix to keep memory low
-                prefix = await _cache.GetOrCreateAsync("guildconfig:" + commandContext.Guild.Id, async entry =>
+                prefix = await _cache.GetOrCreateAsync("guildconfig:" + context.Guild.Id, async entry =>
                 {
                     using var scope = _services.CreateScope();
                     var databaseContext = scope.ServiceProvider.GetService<DatabaseContext>();
-                    
+
                     var guildConfig = await databaseContext.GuildConfigs.AsNoTracking()
-                        .Where(e => e.GuildId == commandContext.Guild.Id)
+                        .Where(e => e.GuildId == context.Guild.Id)
                         .FirstOrDefaultAsync();
 
                     if (guildConfig != null) return guildConfig.Prefix;
-                    
+
                     guildConfig = new GuildConfig
                     {
-                        GuildId = commandContext.Guild.Id,
+                        GuildId = context.Guild.Id,
                         Prefix = "."
                     };
 
                     await databaseContext.AddAsync(guildConfig);
                     await databaseContext.SaveChangesAsync();
-                    
+
                     return ".";
                 });
             }
 
             var argPos = 0;
-            if (!message.HasStringPrefix(prefix, ref argPos))
+            if (!context.Message.HasStringPrefix(prefix, ref argPos))
                 return;
 
-            commandContext.ArgPos = argPos;
+            context.ArgPos = argPos;
 
-            await _commands.ExecuteAsync(commandContext, argPos, _services);
+            await _commands.ExecuteAsync(context, argPos, _services);
         }
     }
 }

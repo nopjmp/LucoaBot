@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
+using LucoaBot.Models;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,7 +16,10 @@ namespace LucoaBot.Listeners
     {
         private readonly ILogger<StarboardListener> _logger;
         private readonly IServiceProvider _serviceProvider;
+
         private readonly DiscordSocketClient _client;
+        // TODO: Reaction queue processing
+        private readonly RedisQueue _redisQueue;
 
         private static readonly Counter StarboardMessageCounter =
             Metrics.CreateCounter("discord_starboard_count", "Number of starboard posts");
@@ -27,16 +31,17 @@ namespace LucoaBot.Listeners
         private const int DefaultThreshold = 1;
 #endif
         public StarboardListener(ILogger<StarboardListener> logger, DiscordSocketClient client,
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider, RedisQueue redisQueue)
         {
             _logger = logger;
             _client = client;
             _serviceProvider = serviceProvider;
+            _redisQueue = redisQueue;
         }
 
         public void Initialize()
         {
-            _client.MessageDeleted += Client_MessageDeleted;
+            _redisQueue.MessageDeleted += Client_MessageDeleted;
 
             _client.ReactionAdded += Client_ReactionAdded;
             _client.ReactionRemoved += Client_ReactionRemoved;
@@ -54,39 +59,35 @@ namespace LucoaBot.Listeners
             return config.StarBoardChannel;
         }
 
-        private Task Client_MessageDeleted(Cacheable<IMessage, ulong> message, ISocketMessageChannel socketChannel)
+        private async Task Client_MessageDeleted(RawMessage rawMessage)
         {
-            Task.Run(async () =>
+            var socketChannel = rawMessage.GetChannel(_client);
+            try
             {
-                try
+                if (socketChannel is SocketTextChannel channel)
                 {
-                    if (socketChannel is SocketTextChannel channel)
+                    var starboardChannelId = await GetStarboardChannel(channel.Guild);
+                    if (starboardChannelId != null && starboardChannelId != channel.Id &&
+                        starboardChannelId != 0)
                     {
-                        var starboardChannelId = await GetStarboardChannel(channel.Guild);
-                        if (starboardChannelId != null && starboardChannelId != channel.Id &&
-                            starboardChannelId != 0)
-                        {
-                            var starboardChannel = channel.Guild.GetTextChannel(starboardChannelId.Value);
-                            var messageId = message.Id.ToString();
-                            var messages = starboardChannel.GetMessagesAsync(int.MaxValue).Flatten();
+                        var starboardChannel = channel.Guild.GetTextChannel(starboardChannelId.Value);
+                        var messageId = rawMessage.MessageId.ToString();
+                        var messages = starboardChannel.GetMessagesAsync(int.MaxValue).Flatten();
 
-                            var starMessage = await (from m in messages
-                                where m.Author.Id == _client.CurrentUser.Id
-                                      && m.Embeds.SelectMany(e => e.Fields).Any(f =>
-                                          f.Name == "Message ID" && f.Value == messageId)
-                                select m).FirstOrDefaultAsync();
+                        var starMessage = await (from m in messages
+                            where m.Author.Id == _client.CurrentUser.Id
+                                  && m.Embeds.SelectMany(e => e.Fields).Any(f =>
+                                      f.Name == "Message ID" && f.Value == messageId)
+                            select m).FirstOrDefaultAsync();
 
-                            if (starMessage != null) await starMessage.DeleteAsync();
-                        }
+                        if (starMessage != null) await starMessage.DeleteAsync();
                     }
                 }
-                catch (Exception e)
-                {
-                    _logger.LogError(e, "Exception thrown in Client_MessageDeleted");
-                }
-            }).SafeFireAndForget(false);
-
-            return Task.CompletedTask;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Exception thrown in Client_MessageDeleted");
+            }
         }
 
         private ValueTask<IMessage> FindStarPost(SocketTextChannel starboardChannel, IUserMessage message)

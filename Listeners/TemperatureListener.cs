@@ -5,6 +5,8 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
+using LucoaBot.Models;
+using LucoaBot.Services;
 
 namespace LucoaBot.Listeners
 {
@@ -15,62 +17,55 @@ namespace LucoaBot.Listeners
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex UrlRegex = new Regex(@"http[^\s]+", RegexOptions.Compiled);
-        private readonly DiscordSocketClient _client;
 
-        public TemperatureListener(DiscordSocketClient client)
+        private readonly DiscordSocketClient _client;
+        private readonly RedisQueue _redisQueue;
+
+        public TemperatureListener(DiscordSocketClient client, RedisQueue redisQueue)
         {
             _client = client;
+            _redisQueue = redisQueue;
         }
 
         public void Initialize()
         {
-            _client.MessageReceived += TemperatureListenerAsync;
+            _redisQueue.MessageReceived += TemperatureListenerAsync;
         }
 
-        private Task TemperatureListenerAsync(SocketMessage socketMessage)
+        private async Task TemperatureListenerAsync(CustomContext context)
         {
-            if (socketMessage.Author.IsBot) return Task.CompletedTask;
-            
-            Task.Run(async () =>
+            var self = await context.Channel.GetUserAsync(_client.CurrentUser.Id);
+            if (self is IGuildUser gSelf)
             {
-                var self = await socketMessage.Channel.GetUserAsync(_client.CurrentUser.Id);
-                if (self is IGuildUser gSelf)
-                    if (gSelf.GetPermissions(socketMessage.Channel as IGuildChannel).SendMessages)
-                        try
-                        {
-                            var list = new List<string>();
-                            var content = UrlRegex.Replace(socketMessage.Content, "");
-                            var matches = from m in FindRegex.Matches(content)
-                                where m.Groups.Count == 3
-                                select new
-                                {
-                                    Quantity = double.Parse(m.Groups[1].Value), Unit = m.Groups[2].Value.ToUpper()
-                                };
+                if (gSelf.GetPermissions(context.Channel as IGuildChannel).SendMessages)
+                    try
+                    {
+                        var list = new List<string>();
+                        var content = UrlRegex.Replace(context.Message.Content, "");
+                        var matches = from m in FindRegex.Matches(content)
+                            where m.Groups.Count == 3
+                            select (double.Parse(m.Groups[1].Value), m.Groups[2].Value.ToUpper());
 
-                            foreach (var i in matches)
-                                // ReSharper disable once SwitchStatementMissingSomeCases
-                                switch (i.Unit)
-                                {
-                                    case "C":
-                                        list.Add(
-                                            $"{i.Quantity:#,##0.##} °C = {i.Quantity * 1.8 + 32.0:#,##0.##} °F");
-                                        break;
-                                    case "F":
-                                        list.Add(
-                                            $"{i.Quantity:#,##0.##} °F = {(i.Quantity - 32.0) / 1.8:#,##0.##} °C");
-                                        break;
-                                }
+                        foreach (var (temp, unit) in matches)
+                            // ReSharper disable once SwitchStatementMissingSomeCases
+                            switch (unit)
+                            {
+                                case "C":
+                                    list.Add($"{temp:#,##0.##} °C = {temp * 1.8 + 32.0:#,##0.##} °F");
+                                    break;
+                                case "F":
+                                    list.Add($"{temp:#,##0.##} °F = {(temp - 32.0) / 1.8:#,##0.##} °C");
+                                    break;
+                            }
 
-                            if (list.Any())
-                                await socketMessage.Channel.SendMessageAsync(string.Join("\n", list));
-                        }
-                        catch (Exception)
-                        {
-                            // Do nothing
-                        }
-            }).SafeFireAndForget(false);
-
-            return Task.CompletedTask;
+                        if (list.Any())
+                            await context.Channel.SendMessageAsync(string.Join("\n", list));
+                    }
+                    catch (Exception)
+                    {
+                        // Do nothing
+                    }
+            }
         }
     }
 }

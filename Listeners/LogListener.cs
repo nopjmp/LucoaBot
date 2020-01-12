@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
 using Discord.WebSocket;
+using LucoaBot.Models;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -11,47 +12,37 @@ namespace LucoaBot.Listeners
     {
         private readonly DiscordSocketClient _client;
         private readonly DatabaseContext _context;
+        private readonly RedisQueue _redisQueue;
 
-        public LogListener(ILogger<LogListener> logger, DatabaseContext context, DiscordSocketClient client)
+        public LogListener(ILogger<LogListener> logger, DatabaseContext context, DiscordSocketClient client,
+            RedisQueue redisQueue)
         {
             _context = context;
             _client = client;
+            _redisQueue = redisQueue;
         }
 
         public void Initialize()
         {
             //client.MessageDeleted += Client_MessageDeleted;
-            _client.UserJoined += Client_UserJoined;
-            _client.UserLeft += Client_UserLeft;
+            _redisQueue.UserActionEvent += OnUserActionEvent;
         }
 
-        private Task Client_UserJoined(SocketGuildUser user)
-        {
-            Task.Run(async () => { await UserMembershipUpdate(user, true); });
-
-            return Task.CompletedTask;
-        }
-
-        private Task Client_UserLeft(SocketGuildUser user)
-        {
-            Task.Run(async () => { await UserMembershipUpdate(user, false); });
-
-            return Task.CompletedTask;
-        }
-
-        private async Task UserMembershipUpdate(SocketGuildUser user, bool joined)
+        private async Task OnUserActionEvent(UserActionMessage userActionMessage)
         {
             var config = await _context.GuildConfigs.AsNoTracking()
-                .Where(e => e.GuildId == user.Guild.Id)
+                .Where(e => e.GuildId == userActionMessage.GuildId)
                 .FirstOrDefaultAsync();
 
             if (config.LogChannel.HasValue)
             {
-                var channel = user.Guild.GetTextChannel(config.LogChannel.GetValueOrDefault());
-                var update = joined ? "joined" : "left";
+                var guild = _client.GetGuild(userActionMessage.GuildId);
+                var channel = guild.GetTextChannel(config.LogChannel.GetValueOrDefault());
+
                 if (channel != null)
                     await channel.SendMessageAsync(
-                        $"{user.Username}#{user.Discriminator} with id `{user.Id}` has {update} the server.");
+                        $"{userActionMessage.Username}#{userActionMessage.Discriminator} with id `{userActionMessage.Id}` has " +
+                        $"{userActionMessage.UserAction.ToFriendly()} the server.");
             }
         }
     }

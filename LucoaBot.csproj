@@ -25,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Discord.Net" Version="2.2.0-dev-20191130.5" />
+    <PackageReference Include="Discord.Net" Version="2.2.0-dev-20191226.1" />
     <PackageReference Include="dotenv.net" Version="1.0.6" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="3.1.0">
@@ -46,14 +46,15 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="3.1.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="3.1.0" />
+    <PackageReference Include="MsgPack.Cli" Version="1.0.1" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="3.1.0" />
-    <PackageReference Include="prometheus-net" Version="3.3.0" />
-    <PackageReference Include="Prometheus.Client" Version="3.0.3" />
+    <PackageReference Include="prometheus-net" Version="3.4.0" />
     <PackageReference Include="Prometheus.Client.MetricServer" Version="3.0.1" />
     <PackageReference Include="Serilog" Version="2.9.0" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="3.0.2-dev-10257" />
     <PackageReference Include="Serilog.Settings.Configuration" Version="3.1.1-dev-00209" />
     <PackageReference Include="Serilog.Sinks.Console" Version="3.1.2-dev-00824" />
+    <PackageReference Include="StackExchange.Redis" Version="2.0.601" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(Configuration)' == 'Debug' ">

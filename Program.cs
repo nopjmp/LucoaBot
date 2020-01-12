@@ -13,6 +13,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Prometheus;
 using Serilog;
+using StackExchange.Redis;
 
 namespace LucoaBot
 {
@@ -65,9 +66,15 @@ namespace LucoaBot
                         DefaultRunMode = RunMode.Async
                     }));
                     services.AddSingleton<CommandHandlerService>();
+                    
                     services.AddDbContextPool<DatabaseContext>(options => options.UseNpgsql(
                         hostContext.Configuration.GetConnectionString("DefaultConnection"),
                         optionsBuilder => optionsBuilder.EnableRetryOnFailure(10)));
+                    
+                    services.AddSingleton<IConnectionMultiplexer>(_ => 
+                        ConnectionMultiplexer.Connect(hostContext.Configuration.GetConnectionString("Redis")));
+                    services.AddSingleton<RedisQueue>();
+                    
                     services.AddSingleton<LogListener>();
                     services.AddSingleton<StarboardListener>();
                     services.AddSingleton<TemperatureListener>();

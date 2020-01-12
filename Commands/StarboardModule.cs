@@ -13,7 +13,7 @@ namespace LucoaBot.Commands
     [RequireContext(ContextType.Guild)]
     [RequireUserPermission(GuildPermission.ManageGuild)]
     [RequireBotPermission(ChannelPermission.SendMessages)]
-    public class StarboardModule : ModuleBase<SocketCommandContext>
+    public class StarboardModule : ModuleBase<CustomContext>
     {
         private readonly DatabaseContext _context;
 

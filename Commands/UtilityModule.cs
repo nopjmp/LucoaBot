@@ -14,7 +14,7 @@ namespace LucoaBot.Commands
 {
     [Name("Utility")]
     [RequireBotPermission(ChannelPermission.SendMessages)]
-    public class UtilityModule : ModuleBase<SocketCommandContext>
+    public class UtilityModule : ModuleBase<CustomContext>
     {
         private const string BaseUrl = "https://discordapp.com/api/oauth2/authorize";
 

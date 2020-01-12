@@ -12,7 +12,7 @@ namespace LucoaBot.Commands
     [RequireContext(ContextType.Guild)]
     [RequireBotPermission(ChannelPermission.SendMessages)]
     [RequireBotPermission(GuildPermission.ManageRoles)]
-    public class SelfRoleModule : ModuleBase<SocketCommandContext>
+    public class SelfRoleModule : ModuleBase<CustomContext>
     {
         private readonly DatabaseContext _context;
 

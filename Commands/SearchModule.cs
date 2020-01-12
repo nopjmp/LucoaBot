@@ -10,7 +10,7 @@ namespace LucoaBot.Commands
     [Name("Search")]
     [Group("search")]
     [RequireBotPermission(ChannelPermission.SendMessages)]
-    public class SearchModule : ModuleBase<SocketCommandContext>
+    public class SearchModule : ModuleBase<CustomContext>
     {
         private readonly IHttpClientFactory _httpClientFactory;
 

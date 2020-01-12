@@ -10,7 +10,7 @@ namespace LucoaBot.Commands
 {
     [Name("Help")]
     [RequireBotPermission(ChannelPermission.SendMessages)]
-    public class HelpModule : ModuleBase<SocketCommandContext>
+    public class HelpModule : ModuleBase<CustomContext>
     {
         private readonly DatabaseContext _context;
         private readonly CommandService _service;

@@ -14,7 +14,7 @@ namespace LucoaBot.Commands
     [Name("Admin")]
     [RequireContext(ContextType.Guild)]
     [RequireBotPermission(ChannelPermission.SendMessages)]
-    public class AdminModule : ModuleBase<SocketCommandContext>
+    public class AdminModule : ModuleBase<CustomContext>
     {
         private readonly IMemoryCache _cache;
         private readonly DatabaseContext _context;
