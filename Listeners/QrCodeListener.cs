@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using LucoaBot.Models;
 using LucoaBot.Services;
 using Microsoft.Extensions.Logging;
 using SkiaSharp;
@@ -55,6 +56,10 @@ namespace LucoaBot.Listeners
                             _logger.LogInformation(
                                 $"Found malicious login url qr code {result.BarcodeFormat} {result.Text} ");
                             await context.Message.DeleteAsync();
+
+                            await _redisQueue.SubmitLog(context.User, context.Guild,
+                                $"sent malicious login url qr code `{result.BarcodeFormat}` `{result.Text}`",
+                                "deleted message");
                         }
                     }
                 }

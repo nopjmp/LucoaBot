@@ -26,6 +26,7 @@ namespace LucoaBot.Listeners
         {
             //client.MessageDeleted += Client_MessageDeleted;
             _redisQueue.UserActionEvent += OnUserActionEvent;
+            _redisQueue.EventLogEvent += OnEventLogEvent;
         }
 
         private async Task OnUserActionEvent(UserActionMessage userActionMessage)
@@ -43,6 +44,24 @@ namespace LucoaBot.Listeners
                     await channel.SendMessageAsync(
                         $"{userActionMessage.Username}#{userActionMessage.Discriminator} with id `{userActionMessage.Id}` has " +
                         $"{userActionMessage.UserAction.ToFriendly()} the server.");
+            }
+        }
+
+        private async Task OnEventLogEvent(EventLogMessage eventLogMessage)
+        {
+            var config = await _context.GuildConfigs.AsNoTracking()
+                .Where(e => e.GuildId == eventLogMessage.GuildId)
+                .FirstOrDefaultAsync();
+
+            if (config.LogChannel.HasValue)
+            {
+                var guild = _client.GetGuild(eventLogMessage.GuildId);
+                var channel = guild.GetTextChannel(config.LogChannel.GetValueOrDefault());
+
+                if (channel != null)
+                    await channel.SendMessageAsync(
+                        $"{eventLogMessage.Username}#{eventLogMessage.Discriminator} with id `{eventLogMessage.Id}`" +
+                        $" {eventLogMessage.Message} `action taken: {eventLogMessage.ActionTaken}`");
             }
         }
     }
