@@ -87,6 +87,7 @@ namespace LucoaBot
                         .CreateLogger());
                     configLogging.AddDebug();
                 })
+                .UseConsoleLifetime(opts => opts.SuppressStatusMessages = true)
                 .Build();
 
             await host.RunAsync();
