@@ -36,6 +36,7 @@ namespace LucoaBot.Services
         private readonly IMetricServer _metricServer;
         private readonly StarboardListener _starboardListener;
         private readonly TemperatureListener _temperatureListener;
+        private readonly QrCodeListener _qrCodeListener;
 
         private readonly RedisQueue _redisQueue;
 
@@ -52,7 +53,7 @@ namespace LucoaBot.Services
             StarboardListener starboardListener,
             TemperatureListener temperatureListener,
             RedisQueue redisQueue,
-            DatabaseContext databaseContext)
+            DatabaseContext databaseContext, QrCodeListener qrCodeListener)
         {
             _configuration = configuration;
             _logger = logger;
@@ -65,6 +66,7 @@ namespace LucoaBot.Services
             _temperatureListener = temperatureListener;
             _redisQueue = redisQueue;
             _databaseContext = databaseContext;
+            _qrCodeListener = qrCodeListener;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -138,6 +140,7 @@ namespace LucoaBot.Services
             _logListener.Initialize();
             _starboardListener.Initialize();
             _temperatureListener.Initialize();
+            _qrCodeListener.Initialize();
             
             _redisQueue.Start();
         }

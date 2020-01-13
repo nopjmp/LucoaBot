@@ -78,6 +78,7 @@ namespace LucoaBot
                     services.AddSingleton<LogListener>();
                     services.AddSingleton<StarboardListener>();
                     services.AddSingleton<TemperatureListener>();
+                    services.AddSingleton<QrCodeListener>();
                 })
                 .ConfigureLogging((hostContext, configLogging) =>
                 {
