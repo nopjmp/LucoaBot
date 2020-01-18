@@ -21,6 +21,7 @@ namespace LucoaBot.Services
         private const string LucoaDeletedChannel = "lucoa:deleted";
         private const string LucoaUserActionChannel = "lucoa:user:action";
         private const string LucoaEventLogChannel = "lucoa:eventlog";
+        private const string LucoaReactionChannel = "lucoa:reaction";
 
         public RedisQueue(DiscordSocketClient client, IConnectionMultiplexer connection)
         {
@@ -34,11 +35,15 @@ namespace LucoaBot.Services
             _client.MessageDeleted += OnMessageDeleted;
             _client.UserJoined += OnUserJoined;
             _client.UserLeft += OnUserLeft;
+            _client.ReactionAdded += OnReactionAdded;
+            _client.ReactionRemoved += OnReactionRemoved;
+            _client.ReactionsCleared += OnReactionsCleared;
 
             _subscriber.Subscribe(LucoaMessagesChannel).OnMessage(OnMessageReceived);
             _subscriber.Subscribe(LucoaDeletedChannel).OnMessage(OnMessageDeleted);
             _subscriber.Subscribe(LucoaUserActionChannel).OnMessage(OnUserAction);
             _subscriber.Subscribe(LucoaEventLogChannel).OnMessage(OnLog);
+            _subscriber.Subscribe(LucoaReactionChannel).OnMessage(OnReaction);
         }
 
         public void Stop()
@@ -274,6 +279,101 @@ namespace LucoaBot.Services
             await _subscriber.PublishAsync(LucoaEventLogChannel, msg);
         }
 
+    #endregion
+    #region Reaction Handling
+    private readonly MessagePackSerializer<ReactionMessage> _reactionSerializer =
+        MessagePackSerializer.Get<ReactionMessage>();
+
+    private readonly List<Func<ReactionMessage, Task>> _reactionEvent =
+        new List<Func<ReactionMessage, Task>>();
+
+    public event Func<ReactionMessage, Task> ReactionEvent
+    {
+        add
+        {
+            lock (_reactionEvent) _reactionEvent.Add(value);
+        }
+        remove
+        {
+            lock (_reactionEvent) _reactionEvent.Remove(value);
+        }
+    }
+    private Task OnReactionAdded(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
+    {
+        Task.Run(async () =>
+        {
+            if (channel is SocketGuildChannel guildChannel)
+            {
+                var msg = _reactionSerializer.PackSingleObject(new ReactionMessage()
+                {
+                    ReactionAction = ReactionAction.Added,
+                    MessageId = message.Id,
+                    ChannelId = channel.Id,
+                    GuildId = guildChannel.Guild.Id,
+                    Emote = reaction.Emote.Name
+                });
+                await _subscriber.PublishAsync(LucoaReactionChannel, msg);
+            }
+        }).SafeFireAndForget(false);
+
+        return Task.CompletedTask;
+    }
+        
+    private Task OnReactionRemoved(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
+    {
+        Task.Run(async () =>
+        {
+            if (channel is SocketGuildChannel guildChannel)
+            {
+                var msg = _reactionSerializer.PackSingleObject(new ReactionMessage()
+                {
+                    ReactionAction = ReactionAction.Removed,
+                    MessageId = message.Id,
+                    ChannelId = channel.Id,
+                    GuildId = guildChannel.Guild.Id,
+                    Emote = reaction.Emote.Name
+                });
+                await _subscriber.PublishAsync(LucoaReactionChannel, msg);
+            }
+        }).SafeFireAndForget(false);
+
+        return Task.CompletedTask;
+    }
+        
+    private Task OnReactionsCleared(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel)
+    {
+        Task.Run(async () =>
+        {
+            if (channel is SocketGuildChannel guildChannel)
+            {
+                var msg = _reactionSerializer.PackSingleObject(new ReactionMessage()
+                {
+                    ReactionAction = ReactionAction.Removed,
+                    MessageId = message.Id,
+                    ChannelId = channel.Id,
+                    GuildId = guildChannel.Guild.Id,
+                    Emote = ""
+                });
+                await _subscriber.PublishAsync(LucoaReactionChannel, msg);
+            }
+        }).SafeFireAndForget(false);
+
+        return Task.CompletedTask;
+    }
+    
+    private async Task OnReaction(ChannelMessage message)
+    {
+        if (message.Message.IsNullOrEmpty) return;
+
+        var rawMessage = _reactionSerializer.UnpackSingleObject(message.Message);
+        var tasks = new List<Task>();
+        lock (_reactionEvent)
+        {
+            tasks.AddRange(_reactionEvent.Select(func => Task.Run(async () => await func(rawMessage))));
+        }
+
+        await Task.WhenAll(tasks);
+    }
     #endregion
     }
 }

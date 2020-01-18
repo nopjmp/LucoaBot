@@ -18,6 +18,7 @@ namespace LucoaBot.Listeners
         private readonly IServiceProvider _serviceProvider;
 
         private readonly DiscordSocketClient _client;
+
         // TODO: Reaction queue processing
         private readonly RedisQueue _redisQueue;
 
@@ -42,18 +43,15 @@ namespace LucoaBot.Listeners
         public void Initialize()
         {
             _redisQueue.MessageDeleted += Client_MessageDeleted;
-
-            _client.ReactionAdded += Client_ReactionAdded;
-            _client.ReactionRemoved += Client_ReactionRemoved;
-            _client.ReactionsCleared += Client_ReactionsCleared;
+            _redisQueue.ReactionEvent += OnReactionEvent;
         }
 
-        private async Task<ulong?> GetStarboardChannel(IGuild guild)
+        private async Task<ulong?> GetStarboardChannel(ulong guildId)
         {
             using var scope = _serviceProvider.CreateScope();
             await using var context = scope.ServiceProvider.GetService<DatabaseContext>();
             var config = await context.GuildConfigs.AsNoTracking()
-                .Where(e => e.GuildId == guild.Id)
+                .Where(e => e.GuildId == guildId)
                 .FirstOrDefaultAsync();
 
             return config.StarBoardChannel;
@@ -66,7 +64,7 @@ namespace LucoaBot.Listeners
             {
                 if (socketChannel is SocketTextChannel channel)
                 {
-                    var starboardChannelId = await GetStarboardChannel(channel.Guild);
+                    var starboardChannelId = await GetStarboardChannel(channel.Guild.Id);
                     if (starboardChannelId != null && starboardChannelId != channel.Id &&
                         starboardChannelId != 0)
                     {
@@ -90,7 +88,7 @@ namespace LucoaBot.Listeners
             }
         }
 
-        private ValueTask<IMessage> FindStarPost(SocketTextChannel starboardChannel, IUserMessage message)
+        private ValueTask<IMessage> FindStarPost(SocketTextChannel starboardChannel, IMessage message)
         {
             var messageId = message.Id.ToString();
             var dateThreshold = DateTimeOffset.Now.AddDays(-1);
@@ -102,7 +100,7 @@ namespace LucoaBot.Listeners
                 select m).FirstOrDefaultAsync();
         }
 
-        private async Task ProcessReaction(ulong? starboardChannelId, SocketTextChannel channel, IUserMessage message,
+        private async Task ProcessReaction(ulong? starboardChannelId, SocketTextChannel channel, IMessage message,
             int count)
         {
             if (starboardChannelId == null) return;
@@ -173,117 +171,34 @@ namespace LucoaBot.Listeners
             }
         }
 
-        private Task Client_ReactionAdded(Cacheable<IUserMessage, ulong> cacheMessage,
-            ISocketMessageChannel socketChannel, SocketReaction reaction)
+        private async Task OnReactionEvent(ReactionMessage reactionMessage)
         {
-            if (reaction.Emote.Name != _emoji.Name || !(socketChannel is SocketTextChannel)) return Task.CompletedTask;
-            Task.Run(async () =>
+            if (string.IsNullOrEmpty(reactionMessage.Emote) || reactionMessage.Emote == _emoji.Name)
             {
-                try
+                var starboardChannelId = await GetStarboardChannel(reactionMessage.GuildId);
+                // only process if the starboard channel has a value and it's not in the starboard.
+                if (starboardChannelId.HasValue && reactionMessage.ChannelId != starboardChannelId)
                 {
+                    var socketChannel = _client.GetChannel(reactionMessage.ChannelId);
                     if (socketChannel is SocketTextChannel channel)
                     {
-                        var starboardChannelId = await GetStarboardChannel(channel.Guild);
+                        var message = await channel.GetMessageAsync(reactionMessage.MessageId);
+                        // only check the last days of messages
+                        var dateThreshold = DateTimeOffset.Now.AddDays(-1);
+                        if (message.CreatedAt < dateThreshold)
+                            return;
 
-                        // only process if the starboard channel has a value and it's not in the starboard.
-                        if (starboardChannelId.HasValue && channel.Id != starboardChannelId)
+                        var reactionCount = 0;
+                        if (reactionMessage.ReactionAction != ReactionAction.Cleared)
                         {
-                            var message = await cacheMessage.GetOrDownloadAsync();
-
-                            // only check the last days of messages
-                            var dateThreshold = DateTimeOffset.Now.AddDays(-1);
-                            if (message.CreatedAt < dateThreshold)
-                                return;
-
-                            if (message.Reactions.TryGetValue(_emoji, out var reactionMetadata))
-                                await ProcessReaction(starboardChannelId, channel, message,
-                                    reactionMetadata.ReactionCount);
+                            message.Reactions.TryGetValue(_emoji, out var reactionMetadata);
+                            reactionCount = reactionMetadata.ReactionCount;
                         }
+
+                        await ProcessReaction(starboardChannelId, channel, message, reactionCount);
                     }
                 }
-                catch (Exception e)
-                {
-                    _logger.LogError(e, "Exception thrown in Client_ReactionAdded");
-                }
-            }).SafeFireAndForget(false);
-
-            return Task.CompletedTask;
-        }
-
-        private Task Client_ReactionRemoved(Cacheable<IUserMessage, ulong> cacheMessage,
-            ISocketMessageChannel socketChannel, SocketReaction reaction)
-        {
-            if (reaction.Emote.Name != _emoji.Name || !(socketChannel is SocketTextChannel)) return Task.CompletedTask;
-
-            Task.Run(async () =>
-            {
-                try
-                {
-                    if (socketChannel is SocketTextChannel channel)
-                    {
-                        var starboardChannelId = await GetStarboardChannel(channel.Guild);
-
-                        // only process if the starboard channel has a value and it's not in the starboard.
-                        if (starboardChannelId.HasValue && channel.Id != starboardChannelId)
-                        {
-                            var message = await cacheMessage.GetOrDownloadAsync();
-
-                            // only check the last day of messages
-                            var dateThreshold = DateTimeOffset.Now.AddDays(-1);
-                            if (message.CreatedAt < dateThreshold)
-                                return;
-
-                            var count = 0;
-                            if (message.Reactions.TryGetValue(_emoji, out var reactionMetadata))
-                                count = reactionMetadata.ReactionCount;
-
-                            await ProcessReaction(starboardChannelId, channel, message, count);
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    _logger.LogError(e, "Exception thrown in Client_ReactionRemoved");
-                }
-            }).SafeFireAndForget(false);
-
-            return Task.CompletedTask;
-        }
-
-        private Task Client_ReactionsCleared(Cacheable<IUserMessage, ulong> cacheMessage,
-            ISocketMessageChannel socketChannel)
-        {
-            if (!(socketChannel is SocketTextChannel)) return Task.CompletedTask;
-            Task.Run(async () =>
-            {
-                try
-                {
-                    if (socketChannel is SocketTextChannel channel)
-                    {
-                        var starboardChannelId = await GetStarboardChannel(channel.Guild);
-
-                        // only process if the starboard channel has a value and it's not in the starboard.
-                        if (starboardChannelId.HasValue &&
-                            channel.Id != starboardChannelId)
-                        {
-                            var message = await cacheMessage.GetOrDownloadAsync();
-
-                            // only check the last day of messages
-                            var dateThreshold = DateTimeOffset.Now.AddDays(-1);
-                            if (message.CreatedAt < dateThreshold)
-                                return;
-
-                            await ProcessReaction(starboardChannelId, channel, message, 0);
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    _logger.LogError(e, "Exception thrown in Client_ReactionsCleared");
-                }
-            }).SafeFireAndForget(false);
-
-            return Task.CompletedTask;
+            }
         }
     }
 }
