@@ -25,6 +25,7 @@ namespace LucoaBot.Commands
 
         [Command("addcommand")]
         [Alias("ac")]
+        [Summary("adds/overwrites a custom command")]
         public async Task<RuntimeResult> AddCommandAsync(string command, params string[] response)
         {
             var commandKey = command.ToLowerInvariant();
@@ -59,6 +60,7 @@ namespace LucoaBot.Commands
 
         [Command("removecommand")]
         [Alias("rc")]
+        [Summary("removes a custom command")]
         public async Task<RuntimeResult> RemoveCommandAsync(string command)
         {
             var commandKey = command.ToLowerInvariant();
