@@ -6,6 +6,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Docker Version
+        run: docker --version
       - name: Checkout
         uses: actions/checkout@v2
       - name: Docker Registry
