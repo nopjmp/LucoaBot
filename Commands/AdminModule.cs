@@ -12,7 +12,6 @@ using Microsoft.Extensions.Caching.Memory;
 namespace LucoaBot.Commands
 {
     [Name("Admin")]
-    [RequireContext(ContextType.Guild)]
     [RequireBotPermission(ChannelPermission.SendMessages)]
     public class AdminModule : ModuleBase<CustomContext>
     {
@@ -27,6 +26,7 @@ namespace LucoaBot.Commands
 
         [Command("logging")]
         [Summary("Sets up the logging channel for events.")]
+        [RequireContext(ContextType.Guild)]
         [RequireUserPermission(GuildPermission.ManageGuild)]
         public async Task LogAsync(SocketTextChannel channel)
         {
@@ -50,6 +50,7 @@ namespace LucoaBot.Commands
 
         [Command("prune")]
         [Summary("Deletes [num] of messages from the current channel.")]
+        [RequireContext(ContextType.Guild)]
         [RequireUserPermission(GuildPermission.ManageMessages)]
         [RequireBotPermission(GuildPermission.ManageMessages)]
         public async Task PruneAsync(int num)
@@ -79,6 +80,7 @@ namespace LucoaBot.Commands
 
         [Command("prefix")]
         [Summary("Changes the prefix for the bot.")]
+        [RequireContext(ContextType.Guild)]
         [RequireUserPermission(GuildPermission.Administrator)]
         public async Task PrefixAsync(string prefix)
         {
