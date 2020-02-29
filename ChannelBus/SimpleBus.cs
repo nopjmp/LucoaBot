@@ -34,11 +34,11 @@ namespace Paranoid.ChannelBus
             var channel = Channel.CreateUnbounded<Request>();
             var reader = channel.Reader;
             _channelWriter = channel.Writer;
-            
-            var subscriptions = new List<Subscription>();
 
             var _ = Task.Run(async () =>
             {
+                var subscriptions = new List<Subscription>();
+                
                 while (await reader.WaitToReadAsync())
                 {
                     while (_unsubscribeRequests.TryDequeue(out var guid))
