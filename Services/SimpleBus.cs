@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using LucoaBot.Models;
-using Paranoid.ChannelBus;
 
 namespace LucoaBot.Services
 {
@@ -54,7 +53,6 @@ namespace LucoaBot.Services
         }
 
         #region MessageReceived Handler
-        
 
         private readonly List<Func<CustomContext, Task>> _messageReceivedEvent =
             new List<Func<CustomContext, Task>>();
@@ -93,7 +91,7 @@ namespace LucoaBot.Services
         private async Task OnMessageReceived(RawMessage message, CancellationToken cancellationToken)
         {
             if (message.IsDeleted) return;
-            
+
             var context = await CustomContext.Create(_client, message);
             var tasks = new List<Task>();
             lock (_messageReceivedEvent)
@@ -144,7 +142,7 @@ namespace LucoaBot.Services
         private async Task OnMessageDeleted(RawMessage message, CancellationToken cancellationToken)
         {
             if (!message.IsDeleted) return;
-            
+
             var tasks = new List<Task>();
             lock (_messageDeletedEvent)
             {
@@ -260,7 +258,7 @@ namespace LucoaBot.Services
         public async Task SubmitLog(IUser user, IGuild guild, string message, string actionTaken)
         {
             if (guild == null) return; // skip message
-            
+
             await _bus.SendAsync(new EventLogMessage()
             {
                 Id = user.Id,
@@ -272,96 +270,101 @@ namespace LucoaBot.Services
             });
         }
 
-    #endregion
-    #region Reaction Handling
+        #endregion
 
-    private readonly List<Func<ReactionMessage, Task>> _reactionEvent =
-        new List<Func<ReactionMessage, Task>>();
+        #region Reaction Handling
 
-    public event Func<ReactionMessage, Task> ReactionEvent
-    {
-        add
+        private readonly List<Func<ReactionMessage, Task>> _reactionEvent =
+            new List<Func<ReactionMessage, Task>>();
+
+        public event Func<ReactionMessage, Task> ReactionEvent
         {
-            lock (_reactionEvent) _reactionEvent.Add(value);
-        }
-        remove
-        {
-            lock (_reactionEvent) _reactionEvent.Remove(value);
-        }
-    }
-    private Task OnReactionAdded(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
-    {
-        Task.Run(async () =>
-        {
-            if (channel is SocketGuildChannel guildChannel)
+            add
             {
-                await _bus.SendAsync(new ReactionMessage()
-                {
-                    ReactionAction = ReactionAction.Added,
-                    MessageId = message.Id,
-                    ChannelId = channel.Id,
-                    GuildId = guildChannel.Guild.Id,
-                    Emote = reaction.Emote.Name
-                });
+                lock (_reactionEvent) _reactionEvent.Add(value);
             }
-        }).SafeFireAndForget(false);
-
-        return Task.CompletedTask;
-    }
-        
-    private Task OnReactionRemoved(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
-    {
-        Task.Run(async () =>
-        {
-            if (channel is SocketGuildChannel guildChannel)
+            remove
             {
-                await _bus.SendAsync(new ReactionMessage()
-                {
-                    ReactionAction = ReactionAction.Removed,
-                    MessageId = message.Id,
-                    ChannelId = channel.Id,
-                    GuildId = guildChannel.Guild.Id,
-                    Emote = reaction.Emote.Name
-                });
+                lock (_reactionEvent) _reactionEvent.Remove(value);
             }
-        }).SafeFireAndForget(false);
-
-        return Task.CompletedTask;
-    }
-        
-    private Task OnReactionsCleared(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel)
-    {
-        Task.Run(async () =>
-        {
-            if (channel is SocketGuildChannel guildChannel)
-            {
-                await _bus.SendAsync(new ReactionMessage()
-                {
-                    ReactionAction = ReactionAction.Removed,
-                    MessageId = message.Id,
-                    ChannelId = channel.Id,
-                    GuildId = guildChannel.Guild.Id,
-                    Emote = ""
-                });
-            }
-        }).SafeFireAndForget(false);
-
-        return Task.CompletedTask;
-    }
-    
-    private async Task OnReaction(ReactionMessage message, CancellationToken cancellationToken)
-    {
-        var tasks = new List<Task>();
-        lock (_reactionEvent)
-        {
-            tasks.AddRange(_reactionEvent.Select(func =>
-            {
-                return Task.Run(async () => await func(message), cancellationToken);
-            }));
         }
 
-        await Task.WhenAll(tasks);
-    }
-    #endregion
+        private Task OnReactionAdded(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel,
+            SocketReaction reaction)
+        {
+            Task.Run(async () =>
+            {
+                if (channel is SocketGuildChannel guildChannel)
+                {
+                    await _bus.SendAsync(new ReactionMessage()
+                    {
+                        ReactionAction = ReactionAction.Added,
+                        MessageId = message.Id,
+                        ChannelId = channel.Id,
+                        GuildId = guildChannel.Guild.Id,
+                        Emote = reaction.Emote.Name
+                    });
+                }
+            }).SafeFireAndForget(false);
+
+            return Task.CompletedTask;
+        }
+
+        private Task OnReactionRemoved(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel,
+            SocketReaction reaction)
+        {
+            Task.Run(async () =>
+            {
+                if (channel is SocketGuildChannel guildChannel)
+                {
+                    await _bus.SendAsync(new ReactionMessage()
+                    {
+                        ReactionAction = ReactionAction.Removed,
+                        MessageId = message.Id,
+                        ChannelId = channel.Id,
+                        GuildId = guildChannel.Guild.Id,
+                        Emote = reaction.Emote.Name
+                    });
+                }
+            }).SafeFireAndForget(false);
+
+            return Task.CompletedTask;
+        }
+
+        private Task OnReactionsCleared(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel)
+        {
+            Task.Run(async () =>
+            {
+                if (channel is SocketGuildChannel guildChannel)
+                {
+                    await _bus.SendAsync(new ReactionMessage()
+                    {
+                        ReactionAction = ReactionAction.Removed,
+                        MessageId = message.Id,
+                        ChannelId = channel.Id,
+                        GuildId = guildChannel.Guild.Id,
+                        Emote = ""
+                    });
+                }
+            }).SafeFireAndForget(false);
+
+            return Task.CompletedTask;
+        }
+
+        private async Task OnReaction(ReactionMessage message, CancellationToken cancellationToken)
+        {
+            var tasks = new List<Task>();
+            lock (_reactionEvent)
+            {
+                tasks.AddRange(_reactionEvent.Select(func =>
+                {
+                    return Task.Run(async () => await func(message), cancellationToken);
+                }));
+            }
+
+            await Task.WhenAll(tasks);
+        }
+
+        #endregion
     }
 }
