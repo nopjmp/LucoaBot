@@ -13,7 +13,7 @@ namespace LucoaBot.Services
     public class BusQueue
     {
         private readonly DiscordSocketClient _client;
-        private readonly SimpleBus _bus;
+        private readonly IBus _bus;
 
         private Guid _messageReceivedGuid;
         private Guid _messageDeletedGuid;
