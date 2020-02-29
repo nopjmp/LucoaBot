@@ -12,21 +12,21 @@ namespace LucoaBot.Listeners
     {
         private readonly DiscordSocketClient _client;
         private readonly DatabaseContext _context;
-        private readonly SimpleBus _bus;
+        private readonly BusQueue _busQueue;
 
         public LogListener(ILogger<LogListener> logger, DatabaseContext context, DiscordSocketClient client,
-            SimpleBus bus)
+            BusQueue busQueue)
         {
             _context = context;
             _client = client;
-            _bus = bus;
+            _busQueue = busQueue;
         }
 
         public void Initialize()
         {
             //client.MessageDeleted += Client_MessageDeleted;
-            _bus.UserActionEvent += OnUserActionEvent;
-            _bus.EventLogEvent += OnEventLogEvent;
+            _busQueue.UserActionEvent += OnUserActionEvent;
+            _busQueue.EventLogEvent += OnEventLogEvent;
         }
 
         private async Task OnUserActionEvent(UserActionMessage userActionMessage)

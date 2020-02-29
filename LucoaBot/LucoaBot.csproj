@@ -71,4 +71,8 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\ChannelBus\ChannelBus.csproj" />
+  </ItemGroup>
+
 </Project>

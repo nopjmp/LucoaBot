@@ -70,7 +70,7 @@ namespace LucoaBot
                         hostContext.Configuration.GetConnectionString("DefaultConnection"),
                         optionsBuilder => optionsBuilder.EnableRetryOnFailure(10)));
                     
-                    services.AddSingleton<SimpleBus>();
+                    services.AddSingleton<BusQueue>();
                     
                     services.AddSingleton<LogListener>();
                     services.AddSingleton<StarboardListener>();

@@ -38,7 +38,7 @@ namespace LucoaBot.Services
         private readonly TemperatureListener _temperatureListener;
         private readonly QrCodeListener _qrCodeListener;
 
-        private readonly SimpleBus _bus;
+        private readonly BusQueue _busQueue;
 
         private CancellationTokenSource _userCountTokenSource;
 
@@ -52,7 +52,7 @@ namespace LucoaBot.Services
             LogListener logListener,
             StarboardListener starboardListener,
             TemperatureListener temperatureListener,
-            SimpleBus bus,
+            BusQueue busQueue,
             DatabaseContext databaseContext, QrCodeListener qrCodeListener)
         {
             _configuration = configuration;
@@ -64,7 +64,7 @@ namespace LucoaBot.Services
             _logListener = logListener;
             _starboardListener = starboardListener;
             _temperatureListener = temperatureListener;
-            _bus = bus;
+            _busQueue = busQueue;
             _databaseContext = databaseContext;
             _qrCodeListener = qrCodeListener;
         }
@@ -138,7 +138,7 @@ namespace LucoaBot.Services
             _temperatureListener.Initialize();
             _qrCodeListener.Initialize();
             
-            _bus.Start();
+            _busQueue.Start();
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)

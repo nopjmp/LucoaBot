@@ -19,17 +19,17 @@ namespace LucoaBot.Listeners
         private static readonly Regex UrlRegex = new Regex(@"http[^\s]+", RegexOptions.Compiled);
 
         private readonly DiscordSocketClient _client;
-        private readonly SimpleBus _bus;
+        private readonly BusQueue _busQueue;
 
-        public TemperatureListener(DiscordSocketClient client, SimpleBus bus)
+        public TemperatureListener(DiscordSocketClient client, BusQueue busQueue)
         {
             _client = client;
-            _bus = bus;
+            _busQueue = busQueue;
         }
 
         public void Initialize()
         {
-            _bus.MessageReceived += TemperatureListenerAsync;
+            _busQueue.MessageReceived += TemperatureListenerAsync;
         }
 
         private async Task TemperatureListenerAsync(CustomContext context)

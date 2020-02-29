@@ -6,13 +6,14 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using LucoaBot.Models;
+using Paranoid.ChannelBus;
 
 namespace LucoaBot.Services
 {
-    public class SimpleBus
+    public class BusQueue
     {
         private readonly DiscordSocketClient _client;
-        private readonly Paranoid.ChannelBus.SimpleBus _bus;
+        private readonly SimpleBus _bus;
 
         private Guid _messageReceivedGuid;
         private Guid _messageDeletedGuid;
@@ -20,10 +21,10 @@ namespace LucoaBot.Services
         private Guid _logGuid;
         private Guid _reactionGuid;
 
-        public SimpleBus(DiscordSocketClient client)
+        public BusQueue(DiscordSocketClient client)
         {
             _client = client;
-            _bus = new Paranoid.ChannelBus.SimpleBus();
+            _bus = new SimpleBus();
         }
 
         public void Start()
