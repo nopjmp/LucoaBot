@@ -27,17 +27,17 @@ namespace LucoaBot.Services
         private readonly CommandService _commands;
         private readonly IServiceProvider _services;
         private readonly IMemoryCache _cache;
-        private readonly RedisQueue _redisQueue;
+        private readonly SimpleBus _bus;
         private readonly ILogger<CommandHandlerService> _logger;
 
         public CommandHandlerService(IServiceProvider services, DiscordSocketClient client, CommandService commands,
-            IMemoryCache cache, RedisQueue redisQueue, ILogger<CommandHandlerService> logger)
+            IMemoryCache cache, SimpleBus bus, ILogger<CommandHandlerService> logger)
         {
             _services = services;
             _client = client;
             _commands = commands;
             _cache = cache;
-            _redisQueue = redisQueue;
+            _bus = bus;
             _logger = logger;
         }
 
@@ -49,7 +49,7 @@ namespace LucoaBot.Services
             await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
 
             _commands.CommandExecuted += OnCommandExecutedAsync;
-            _redisQueue.MessageReceived += HandleCommandAsync;
+            _bus.MessageReceived += HandleCommandAsync;
         }
 
         private async Task OnCommandExecutedAsync(Optional<CommandInfo> command, ICommandContext cmdContext,

@@ -1,32 +1,30 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using LucoaBot.Models;
-using MsgPack.Serialization;
-using StackExchange.Redis;
-using LogMessage = Discord.LogMessage;
+using Paranoid.ChannelBus;
 
 namespace LucoaBot.Services
 {
-    public class RedisQueue
+    public class SimpleBus
     {
         private readonly DiscordSocketClient _client;
-        private readonly ISubscriber _subscriber;
+        private readonly Paranoid.ChannelBus.SimpleBus _bus;
 
-        private const string LucoaMessagesChannel = "lucoa:messages";
-        private const string LucoaDeletedChannel = "lucoa:deleted";
-        private const string LucoaUserActionChannel = "lucoa:user:action";
-        private const string LucoaEventLogChannel = "lucoa:eventlog";
-        private const string LucoaReactionChannel = "lucoa:reaction";
+        private Guid _messageReceivedGuid;
+        private Guid _messageDeletedGuid;
+        private Guid _userActionGuid;
+        private Guid _logGuid;
+        private Guid _reactionGuid;
 
-        public RedisQueue(DiscordSocketClient client, IConnectionMultiplexer connection)
+        public SimpleBus(DiscordSocketClient client)
         {
             _client = client;
-            _subscriber = connection.GetSubscriber();
+            _bus = new Paranoid.ChannelBus.SimpleBus();
         }
 
         public void Start()
@@ -39,22 +37,24 @@ namespace LucoaBot.Services
             _client.ReactionRemoved += OnReactionRemoved;
             _client.ReactionsCleared += OnReactionsCleared;
 
-            _subscriber.Subscribe(LucoaMessagesChannel).OnMessage(OnMessageReceived);
-            _subscriber.Subscribe(LucoaDeletedChannel).OnMessage(OnMessageDeleted);
-            _subscriber.Subscribe(LucoaUserActionChannel).OnMessage(OnUserAction);
-            _subscriber.Subscribe(LucoaEventLogChannel).OnMessage(OnLog);
-            _subscriber.Subscribe(LucoaReactionChannel).OnMessage(OnReaction);
+            _messageReceivedGuid = _bus.Subscribe<RawMessage>(OnMessageReceived);
+            _messageDeletedGuid = _bus.Subscribe<RawMessage>(OnMessageDeleted);
+            _userActionGuid = _bus.Subscribe<UserActionMessage>(OnUserAction);
+            _logGuid = _bus.Subscribe<EventLogMessage>(OnLog);
+            _reactionGuid = _bus.Subscribe<ReactionMessage>(OnReaction);
         }
 
         public void Stop()
         {
-            _subscriber.UnsubscribeAll();
+            _bus.Unsubscribe(_messageReceivedGuid);
+            _bus.Unsubscribe(_messageDeletedGuid);
+            _bus.Unsubscribe(_userActionGuid);
+            _bus.Unsubscribe(_logGuid);
+            _bus.Unsubscribe(_reactionGuid);
         }
 
         #region MessageReceived Handler
-
-        private readonly MessagePackSerializer<RawMessage> _messageReceivedSerializer =
-            MessagePackSerializer.Get<RawMessage>();
+        
 
         private readonly List<Func<CustomContext, Task>> _messageReceivedEvent =
             new List<Func<CustomContext, Task>>();
@@ -78,28 +78,30 @@ namespace LucoaBot.Services
             {
                 Task.Run(async () =>
                 {
-                    var msg = _messageReceivedSerializer.PackSingleObject(new RawMessage()
+                    await _bus.SendAsync(new RawMessage()
                     {
+                        IsDeleted = false,
                         ChannelId = socketUserMessage.Channel.Id,
                         MessageId = socketUserMessage.Id
                     });
-                    await _subscriber.PublishAsync(LucoaMessagesChannel, msg);
                 }).SafeFireAndForget(false);
             }
 
             return Task.CompletedTask;
         }
 
-        private async Task OnMessageReceived(ChannelMessage message)
+        private async Task OnMessageReceived(RawMessage message, CancellationToken cancellationToken)
         {
-            if (message.Message.IsNullOrEmpty) return;
-
-            var rawMessage = _messageReceivedSerializer.UnpackSingleObject(message.Message);
-            var context = await CustomContext.Create(_client, rawMessage);
+            if (message.IsDeleted) return;
+            
+            var context = await CustomContext.Create(_client, message);
             var tasks = new List<Task>();
             lock (_messageReceivedEvent)
             {
-                tasks.AddRange(_messageReceivedEvent.Select(func => Task.Run(async () => await func(context))));
+                tasks.AddRange(_messageReceivedEvent.Select(func =>
+                {
+                    return Task.Run(async () => await func(context), cancellationToken);
+                }));
             }
 
             await Task.WhenAll(tasks);
@@ -108,9 +110,6 @@ namespace LucoaBot.Services
         #endregion
 
         #region MessageDeleted Handler
-
-        private readonly MessagePackSerializer<RawMessage> _messageDeletedSerializer =
-            MessagePackSerializer.Get<RawMessage>();
 
         private readonly List<Func<RawMessage, Task>> _messageDeletedEvent =
             new List<Func<RawMessage, Task>>();
@@ -131,26 +130,28 @@ namespace LucoaBot.Services
         {
             Task.Run(async () =>
             {
-                var msg = _messageDeletedSerializer.PackSingleObject(new RawMessage()
+                await _bus.SendAsync(new RawMessage()
                 {
+                    IsDeleted = true,
                     ChannelId = messageChannel.Id,
                     MessageId = cacheMessage.Id
                 });
-                await _subscriber.PublishAsync(LucoaDeletedChannel, msg);
             }).SafeFireAndForget(false);
 
             return Task.CompletedTask;
         }
 
-        private async Task OnMessageDeleted(ChannelMessage message)
+        private async Task OnMessageDeleted(RawMessage message, CancellationToken cancellationToken)
         {
-            if (message.Message.IsNullOrEmpty) return;
-
-            var rawMessage = _messageReceivedSerializer.UnpackSingleObject(message.Message);
+            if (!message.IsDeleted) return;
+            
             var tasks = new List<Task>();
             lock (_messageDeletedEvent)
             {
-                tasks.AddRange(_messageDeletedEvent.Select(func => Task.Run(async () => await func(rawMessage))));
+                tasks.AddRange(_messageDeletedEvent.Select(func =>
+                {
+                    return Task.Run(async () => await func(message), cancellationToken);
+                }));
             }
 
             await Task.WhenAll(tasks);
@@ -159,9 +160,6 @@ namespace LucoaBot.Services
         #endregion
 
         #region User Action Handler
-
-        private readonly MessagePackSerializer<UserActionMessage> _userActionSerializer =
-            MessagePackSerializer.Get<UserActionMessage>();
 
         private readonly List<Func<UserActionMessage, Task>> _userActionEvent =
             new List<Func<UserActionMessage, Task>>();
@@ -182,7 +180,7 @@ namespace LucoaBot.Services
         {
             Task.Run(async () =>
             {
-                var msg = _userActionSerializer.PackSingleObject(new UserActionMessage()
+                await _bus.SendAsync(new UserActionMessage()
                 {
                     UserAction = UserAction.Join,
                     Id = user.Id,
@@ -190,7 +188,6 @@ namespace LucoaBot.Services
                     Username = user.Username,
                     Discriminator = user.Discriminator
                 });
-                await _subscriber.PublishAsync(LucoaUserActionChannel, msg);
             }).SafeFireAndForget(false);
 
             return Task.CompletedTask;
@@ -200,7 +197,7 @@ namespace LucoaBot.Services
         {
             Task.Run(async () =>
             {
-                var msg = _userActionSerializer.PackSingleObject(new UserActionMessage()
+                await _bus.SendAsync(new UserActionMessage()
                 {
                     UserAction = UserAction.Left,
                     Id = user.Id,
@@ -208,21 +205,20 @@ namespace LucoaBot.Services
                     Username = user.Username,
                     Discriminator = user.Discriminator
                 });
-                await _subscriber.PublishAsync(LucoaUserActionChannel, msg);
             }).SafeFireAndForget(false);
 
             return Task.CompletedTask;
         }
 
-        private async Task OnUserAction(ChannelMessage message)
+        private async Task OnUserAction(UserActionMessage message, CancellationToken cancellationToken)
         {
-            if (message.Message.IsNullOrEmpty) return;
-
-            var rawMessage = _userActionSerializer.UnpackSingleObject(message.Message);
             var tasks = new List<Task>();
             lock (_userActionEvent)
             {
-                tasks.AddRange(_userActionEvent.Select(func => Task.Run(async () => await func(rawMessage))));
+                tasks.AddRange(_userActionEvent.Select(func =>
+                {
+                    return Task.Run(async () => await func(message), cancellationToken);
+                }));
             }
 
             await Task.WhenAll(tasks);
@@ -231,9 +227,6 @@ namespace LucoaBot.Services
         #endregion
 
         #region Log Handler
-
-        private readonly MessagePackSerializer<EventLogMessage> _eventLogSerializer =
-            MessagePackSerializer.Get<EventLogMessage>();
 
         private readonly List<Func<EventLogMessage, Task>> _eventLogEvent =
             new List<Func<EventLogMessage, Task>>();
@@ -250,15 +243,15 @@ namespace LucoaBot.Services
             }
         }
 
-        private async Task OnLog(ChannelMessage message)
+        private async Task OnLog(EventLogMessage message, CancellationToken cancellationToken)
         {
-            if (message.Message.IsNullOrEmpty) return;
-
-            var rawMessage = _eventLogSerializer.UnpackSingleObject(message.Message);
             var tasks = new List<Task>();
             lock (_eventLogEvent)
             {
-                tasks.AddRange(_eventLogEvent.Select(func => Task.Run(async () => await func(rawMessage))));
+                tasks.AddRange(_eventLogEvent.Select(func =>
+                {
+                    return Task.Run(async () => await func(message), cancellationToken);
+                }));
             }
 
             await Task.WhenAll(tasks);
@@ -267,7 +260,8 @@ namespace LucoaBot.Services
         public async Task SubmitLog(IUser user, IGuild guild, string message, string actionTaken)
         {
             if (guild == null) return; // skip message
-                var msg = _eventLogSerializer.PackSingleObject(new EventLogMessage()
+            
+            await _bus.SendAsync(new EventLogMessage()
             {
                 Id = user.Id,
                 GuildId = guild.Id,
@@ -276,13 +270,10 @@ namespace LucoaBot.Services
                 Message = message,
                 ActionTaken = actionTaken
             });
-            await _subscriber.PublishAsync(LucoaEventLogChannel, msg);
         }
 
     #endregion
     #region Reaction Handling
-    private readonly MessagePackSerializer<ReactionMessage> _reactionSerializer =
-        MessagePackSerializer.Get<ReactionMessage>();
 
     private readonly List<Func<ReactionMessage, Task>> _reactionEvent =
         new List<Func<ReactionMessage, Task>>();
@@ -304,7 +295,7 @@ namespace LucoaBot.Services
         {
             if (channel is SocketGuildChannel guildChannel)
             {
-                var msg = _reactionSerializer.PackSingleObject(new ReactionMessage()
+                await _bus.SendAsync(new ReactionMessage()
                 {
                     ReactionAction = ReactionAction.Added,
                     MessageId = message.Id,
@@ -312,7 +303,6 @@ namespace LucoaBot.Services
                     GuildId = guildChannel.Guild.Id,
                     Emote = reaction.Emote.Name
                 });
-                await _subscriber.PublishAsync(LucoaReactionChannel, msg);
             }
         }).SafeFireAndForget(false);
 
@@ -325,7 +315,7 @@ namespace LucoaBot.Services
         {
             if (channel is SocketGuildChannel guildChannel)
             {
-                var msg = _reactionSerializer.PackSingleObject(new ReactionMessage()
+                await _bus.SendAsync(new ReactionMessage()
                 {
                     ReactionAction = ReactionAction.Removed,
                     MessageId = message.Id,
@@ -333,7 +323,6 @@ namespace LucoaBot.Services
                     GuildId = guildChannel.Guild.Id,
                     Emote = reaction.Emote.Name
                 });
-                await _subscriber.PublishAsync(LucoaReactionChannel, msg);
             }
         }).SafeFireAndForget(false);
 
@@ -346,7 +335,7 @@ namespace LucoaBot.Services
         {
             if (channel is SocketGuildChannel guildChannel)
             {
-                var msg = _reactionSerializer.PackSingleObject(new ReactionMessage()
+                await _bus.SendAsync(new ReactionMessage()
                 {
                     ReactionAction = ReactionAction.Removed,
                     MessageId = message.Id,
@@ -354,22 +343,21 @@ namespace LucoaBot.Services
                     GuildId = guildChannel.Guild.Id,
                     Emote = ""
                 });
-                await _subscriber.PublishAsync(LucoaReactionChannel, msg);
             }
         }).SafeFireAndForget(false);
 
         return Task.CompletedTask;
     }
     
-    private async Task OnReaction(ChannelMessage message)
+    private async Task OnReaction(ReactionMessage message, CancellationToken cancellationToken)
     {
-        if (message.Message.IsNullOrEmpty) return;
-
-        var rawMessage = _reactionSerializer.UnpackSingleObject(message.Message);
         var tasks = new List<Task>();
         lock (_reactionEvent)
         {
-            tasks.AddRange(_reactionEvent.Select(func => Task.Run(async () => await func(rawMessage))));
+            tasks.AddRange(_reactionEvent.Select(func =>
+            {
+                return Task.Run(async () => await func(message), cancellationToken);
+            }));
         }
 
         await Task.WhenAll(tasks);

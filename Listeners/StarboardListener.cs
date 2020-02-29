@@ -20,7 +20,7 @@ namespace LucoaBot.Listeners
         private readonly DiscordSocketClient _client;
 
         // TODO: Reaction queue processing
-        private readonly RedisQueue _redisQueue;
+        private readonly SimpleBus _bus;
 
         private static readonly Counter StarboardMessageCounter =
             Metrics.CreateCounter("discord_starboard_count", "Number of starboard posts");
@@ -32,18 +32,18 @@ namespace LucoaBot.Listeners
         private const int DefaultThreshold = 1;
 #endif
         public StarboardListener(ILogger<StarboardListener> logger, DiscordSocketClient client,
-            IServiceProvider serviceProvider, RedisQueue redisQueue)
+            IServiceProvider serviceProvider, SimpleBus bus)
         {
             _logger = logger;
             _client = client;
             _serviceProvider = serviceProvider;
-            _redisQueue = redisQueue;
+            _bus = bus;
         }
 
         public void Initialize()
         {
-            _redisQueue.MessageDeleted += Client_MessageDeleted;
-            _redisQueue.ReactionEvent += OnReactionEvent;
+            _bus.MessageDeleted += Client_MessageDeleted;
+            _bus.ReactionEvent += OnReactionEvent;
         }
 
         private async Task<ulong?> GetStarboardChannel(ulong guildId)

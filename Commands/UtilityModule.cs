@@ -41,9 +41,12 @@ namespace LucoaBot.Commands
 
         [Command("ping")]
         [Summary("Returns the latency of the bot to Discord.")]
-        public Task PingAsync()
+        public async Task PingAsync()
         {
-            return ReplyAsync($"Pong! {Context.Client.Latency}ms");
+            var m = await ReplyAsync("Ping: ...");
+            var diff = m.CreatedAt - Context.Message.CreatedAt;
+            await m.ModifyAsync(p =>
+                p.Content = $"Pong: {diff.TotalMilliseconds}ms | Gateway {Context.Client.Latency}ms");
         }
 
         [Command("serverinfo")]

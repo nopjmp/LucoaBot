@@ -7,6 +7,7 @@ namespace LucoaBot.Models
 {
     public class RawMessage
     {
+        public bool IsDeleted { get; set; }
         public ulong ChannelId { get; set; }
         public ulong MessageId { get; set; }
 

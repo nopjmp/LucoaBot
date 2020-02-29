@@ -15,21 +15,21 @@ namespace LucoaBot.Listeners
         private const string DiscordRaString = "https://discordapp.com/ra/";
         private readonly ILogger<QrCodeListener> _logger;
 
-        private readonly RedisQueue _redisQueue;
+        private readonly SimpleBus _bus;
 
         private readonly IHttpClientFactory _httpClientFactory;
 
-        public QrCodeListener(ILogger<QrCodeListener> logger, RedisQueue redisQueue,
+        public QrCodeListener(ILogger<QrCodeListener> logger, SimpleBus bus,
             IHttpClientFactory httpClientFactory)
         {
             _logger = logger;
-            _redisQueue = redisQueue;
+            _bus = bus;
             _httpClientFactory = httpClientFactory;
         }
 
         public void Initialize()
         {
-            _redisQueue.MessageReceived += OnMessageReceived;
+            _bus.MessageReceived += OnMessageReceived;
         }
 
         private Task OnMessageReceived(CustomContext context)
@@ -57,7 +57,7 @@ namespace LucoaBot.Listeners
                                 $"Found malicious login url qr code {result.BarcodeFormat} {result.Text} ");
                             await context.Message.DeleteAsync();
 
-                            await _redisQueue.SubmitLog(context.User, context.Guild,
+                            await _bus.SubmitLog(context.User, context.Guild,
                                 $"sent malicious login url qr code `{result.BarcodeFormat}` `{result.Text}`",
                                 "deleted message");
                         }
