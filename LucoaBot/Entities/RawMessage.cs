@@ -5,14 +5,14 @@ using Discord.WebSocket;
 
 namespace LucoaBot.Models
 {
-    public class RawMessage
+    public struct RawMessage
     {
         public bool IsDeleted { get; set; }
         public ulong ChannelId { get; set; }
         public ulong MessageId { get; set; }
 
-        private Optional<ISocketMessageChannel> _channel = Optional<ISocketMessageChannel>.Unspecified;
-        private Optional<SocketUserMessage> _message = Optional<SocketUserMessage>.Unspecified;
+        private Optional<ISocketMessageChannel> _channel;
+        private Optional<SocketUserMessage> _message;
 
         public ISocketMessageChannel GetChannel(DiscordSocketClient client)
         {

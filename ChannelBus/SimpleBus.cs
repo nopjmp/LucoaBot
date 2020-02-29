@@ -12,9 +12,17 @@ namespace Paranoid.ChannelBus
     {
         private struct Request
         {
-            public object Message;
-            public CancellationToken CancellationToken;
-            public TaskCompletionSource<bool> CompletionSource;
+            public readonly object Message;
+            public readonly CancellationToken CancellationToken;
+            public readonly TaskCompletionSource<bool> CompletionSource;
+
+            public Request(object message, CancellationToken cancellationToken,
+                TaskCompletionSource<bool> completionSource)
+            {
+                Message = message;
+                CancellationToken = cancellationToken;
+                CompletionSource = completionSource;
+            }
         }
         
         private readonly ConcurrentQueue<Subscription> _subscriptionRequests = new ConcurrentQueue<Subscription>();
@@ -76,25 +84,20 @@ namespace Paranoid.ChannelBus
             });
         }
         
-        public Task SendAsync<T>(T message)
+        public Task SendAsync<T>(T message) where T : struct
         {
             return SendAsync(message, CancellationToken.None);
         }
 
-        public Task SendAsync<T>(T message, CancellationToken cancellationToken)
+        public Task SendAsync<T>(T message, CancellationToken cancellationToken) where T : struct
         {
-            var request = new Request()
-            {
-                Message = message,
-                CancellationToken = cancellationToken,
-                CompletionSource = new TaskCompletionSource<bool>()
-            };
-            
+            var request = new Request(message, cancellationToken, new TaskCompletionSource<bool>());
+
             _channelWriter.TryWrite(request);
             return request.CompletionSource.Task;
         }
 
-        public Guid Subscribe<T>(Action<T> handler)
+        public Guid Subscribe<T>(Action<T> handler) where T : struct
         {
             return Subscribe<T>((message, cancellationToken) =>
             {
@@ -103,7 +106,7 @@ namespace Paranoid.ChannelBus
             });
         }
 
-        public Guid Subscribe<T>(Func<T, CancellationToken, Task> handler)
+        public Guid Subscribe<T>(Func<T, CancellationToken, Task> handler) where T : struct
         {
             var subscription = Subscription.Create(handler);
             _subscriptionRequests.Enqueue(subscription);

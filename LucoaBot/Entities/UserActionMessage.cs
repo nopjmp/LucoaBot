@@ -1,6 +1,6 @@
 ﻿namespace LucoaBot.Models
 {
-    public class UserActionMessage
+    public struct UserActionMessage
     {
         public UserAction UserAction { get; set; }
         public ulong Id { get; set; }

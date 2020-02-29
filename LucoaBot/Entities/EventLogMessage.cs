@@ -1,6 +1,6 @@
 ﻿namespace LucoaBot.Models
 {
-    public class EventLogMessage
+    public struct EventLogMessage
     {
         public ulong Id { get; set; }
         public ulong GuildId { get; set; }

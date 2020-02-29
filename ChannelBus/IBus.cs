@@ -6,10 +6,10 @@ namespace Paranoid.ChannelBus
 {
     public interface IBus
     {
-        Task SendAsync<T>(T message);
-        Task SendAsync<T>(T message, CancellationToken cancellationToken);
-        Guid Subscribe<T>(Action<T> handler);
-        Guid Subscribe<T>(Func<T, CancellationToken, Task> handler);
+        Task SendAsync<T>(T message) where T : struct;
+        Task SendAsync<T>(T message, CancellationToken cancellationToken) where T : struct;
+        Guid Subscribe<T>(Action<T> handler) where T : struct;
+        Guid Subscribe<T>(Func<T, CancellationToken, Task> handler) where T : struct;
         void Unsubscribe(Guid subscriptionId);
     }
 }
