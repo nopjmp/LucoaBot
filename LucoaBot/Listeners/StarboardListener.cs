@@ -120,7 +120,7 @@ namespace LucoaBot.Listeners
             }
         }
 
-        private async ValueTask<DiscordMessage> FindStarPost(DiscordChannel starboardChannel, DiscordMessage message)
+        private async Task<DiscordMessage> FindStarPost(DiscordChannel starboardChannel, DiscordMessage message)
         {
             var messageId = message.Id.ToString();
             var dateThreshold = DateTimeOffset.Now.AddDays(-1);
@@ -206,13 +206,13 @@ namespace LucoaBot.Listeners
             {
                 var starboardChannelId = await GetStarboardChannel(guild.Id);
                 // only process if the starboard channel has a value and it's not in the starboard.
-                if (starboardChannelId.HasValue && message.ChannelId != starboardChannelId.Value)
+                if (starboardChannelId.HasValue)
                 {
                     // Fetch the message contents
                     message = await message.Channel.GetMessageAsync(message.Id);
                     
                     // ignore bot messages
-                    if (message.Author.IsBot) return;
+                    if (message.Author.IsBot || message.ChannelId == starboardChannelId.Value) return;
                     
                     // only check the last days of messages
                     var dateThreshold = DateTimeOffset.Now.AddDays(-1);
@@ -222,7 +222,17 @@ namespace LucoaBot.Listeners
                     var reactionCount = 0;
                     if (!cleared)
                     {
-                        reactionCount = message.Reactions.Count(e => e.Emoji.Equals(_emoji));
+                        DiscordReaction reaction = null;
+                        foreach (var e in message.Reactions)
+                        {
+                            if (e.Emoji.Equals(_emoji))
+                            {
+                                reaction = e;
+                                break;
+                            }
+                        }
+
+                        reactionCount = reaction?.Count ?? 0;
                     }
 
                     await ProcessReaction(starboardChannelId.Value, message.Channel, message, reactionCount);
