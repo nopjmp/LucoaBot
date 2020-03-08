@@ -1,163 +1,174 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
-using Discord;
-using Discord.Commands;
+using DSharpPlus;
+using DSharpPlus.CommandsNext;
+using DSharpPlus.CommandsNext.Attributes;
+using DSharpPlus.Entities;
 using LucoaBot.Models;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace LucoaBot.Commands
 {
-    [Name("Self Role")]
-    [RequireContext(ContextType.Guild)]
-    [RequireBotPermission(ChannelPermission.SendMessages)]
-    [RequireBotPermission(GuildPermission.ManageRoles)]
-    public class SelfRoleModule : ModuleBase<CustomContext>
+    [RequireGuild]
+    [RequireBotPermissions(Permissions.ManageRoles & Permissions.SendMessages)]
+    [ModuleLifespan(ModuleLifespan.Transient)]
+    public class SelfRoleModule : BaseCommandModule
     {
-        private readonly DatabaseContext _context;
+        private readonly DatabaseContext _databaseContext;
 
-        public SelfRoleModule(DatabaseContext context)
+        public SelfRoleModule(DatabaseContext databaseContext)
         {
-            _context = context;
+            _databaseContext = databaseContext;
         }
 
         [Command("roles")]
-        [Alias("lsar")]
-        [Summary("Lists self assignable roles.")]
-        public async Task ListRolesAsync() //(bool textOnly = false)
+        [Aliases("lsar")]
+        [Description("Lists self assignable roles.")]
+        public async Task ListRolesAsync(CommandContext context) //(bool textOnly = false)
         {
-            var selfRoles = (await _context.SelfRoles.AsNoTracking()
-                    .Where(r => r.GuildId == Context.Guild.Id)
+            var selfRoles = (await _databaseContext.SelfRoles.AsNoTracking()
+                    .Where(r => r.GuildId == context.Guild.Id)
                     .ToListAsync())
                 .GroupBy(r => r.Category ?? "default")
-                .OrderBy(group => group.Key);
+                .OrderByDescending(group => group.Key == "default") // sort default to the front
+                .ThenBy(group => group.Key);
 
-            var embedBuilder = new EmbedBuilder
+            var embedBuilder = new DiscordEmbedBuilder()
             {
                 Title = "Self Assignable Roles"
             };
+
             foreach (var group in selfRoles)
                 embedBuilder.AddField(group.Key,
                     string.Join(" ",
-                        group.Select(r => Context.Guild.GetRole(r.RoleId)
+                        group.Select(r => context.Guild.GetRole(r.RoleId)
                             .Mention)),
                     true);
-
-            // sort default to the front
-            var fb = embedBuilder.Fields.Find(f => f.Name == "default");
-            if (fb != null)
-            {
-                embedBuilder.Fields.Remove(fb);
-                embedBuilder.Fields.Insert(0, fb);
-            }
 
             if (!embedBuilder.Fields.Any())
                 embedBuilder.Description = "There are no self assignable roles.";
 
-            await ReplyAsync(embed: embedBuilder.Build());
+            await context.RespondAsync(embed: embedBuilder.Build());
         }
 
         [Command("addrole")]
-        [Alias("asar")]
-        [Summary("Adds a role for self-assignment")]
-        [RequireUserPermission(GuildPermission.ManageRoles)]
-        public async Task<RuntimeResult> AddRoleAsync(IRole role, string category = null)
+        [Aliases("asar")]
+        [Description("Adds a role for self-assignment")]
+        [RequireUserPermissions(Permissions.ManageRoles)]
+        public async Task AddRoleAsync(CommandContext context, DiscordRole role, string category = null)
         {
-            var selfRoleCheck = await _context.SelfRoles.AsNoTracking()
-                .Where(r => r.GuildId == Context.Guild.Id && r.RoleId == role.Id)
+            var selfRoleCheck = await _databaseContext.SelfRoles.AsNoTracking()
+                .Where(r => r.GuildId == context.Guild.Id && r.RoleId == role.Id)
                 .AnyAsync();
 
             if (selfRoleCheck)
-                return CommandResult.FromError($"**{role.Name}** is already a self assignable role.");
+            {
+                await context.RespondAsync($"**{role.Name}** is already a self assignable role.");
+                return;
+            }
+
 
             var selfRoleEntry = new SelfRole
             {
                 Category = category,
-                GuildId = Context.Guild.Id,
+                GuildId = context.Guild.Id,
                 RoleId = role.Id
             };
 
-            _context.Add(selfRoleEntry);
-            await _context.SaveChangesAsync();
+            _databaseContext.Add(selfRoleEntry);
+            await _databaseContext.SaveChangesAsync();
 
-            return CommandResult.FromSuccess(
+            await context.RespondAsync(
                 $"**{role.Name}** is now self assignable in category {category ?? "default"}.");
         }
 
         [Command("removerole")]
-        [Alias("rsar")]
-        [Summary("Removes a role from self assignment")]
-        [RequireUserPermission(GuildPermission.ManageRoles)]
-        public async Task<RuntimeResult> RemoveRoleAsync(IRole role)
+        [Aliases("rsar")]
+        [Description("Removes a role from self assignment")]
+        [RequireUserPermissions(Permissions.ManageRoles)]
+        public async Task RemoveRoleAsync(CommandContext context, DiscordRole role)
         {
-            var selfRoleEntry = await _context.SelfRoles.AsQueryable()
-                .Where(r => r.GuildId == Context.Guild.Id && r.RoleId == role.Id)
+            var selfRoleEntry = await _databaseContext.SelfRoles.AsQueryable()
+                .Where(r => r.GuildId == context.Guild.Id && r.RoleId == role.Id)
                 .FirstOrDefaultAsync();
 
             if (selfRoleEntry == null)
-                return CommandResult.FromError($"**{role.Name}** not found as a self-assignable role on this server.");
+            {
+                await context.RespondAsync($"**{role.Name}** not found as a self-assignable role on this server.");
+                return;
+            }
 
-            _context.SelfRoles.Remove(selfRoleEntry);
-            await _context.SaveChangesAsync();
+            _databaseContext.SelfRoles.Remove(selfRoleEntry);
+            await _databaseContext.SaveChangesAsync();
 
-            return CommandResult.FromSuccess($"**{role.Name}** is no longer self assignable.");
+            await context.RespondAsync($"**{role.Name}** is no longer self assignable.");
         }
 
         [Command("iam")]
-        [Alias("r")]
-        [Summary("Assigns the request role to the caller, if allowed")]
-        public async Task<RuntimeResult> IamAsync(IRole role)
+        [Aliases("r")]
+        [Description("Assigns the request role to the caller, if allowed")]
+        public async Task IamAsync(CommandContext context, DiscordRole role)
         {
-            var guildUser = Context.User as IGuildUser;
-            if (guildUser == null)
-                return CommandResult.FromError("Secret easter egg, please message the bot owner!!! 🤕");
+            var member = context.Member;
 
-            if (guildUser.RoleIds.Contains(role.Id))
-                return CommandResult.FromError($"{Context.User.Mention}... You already have **{role.Name}**.");
+            if (member.Roles.Contains(role))
+            {
+                await context.RespondAsync($"{context.User.Mention}... You already have **{role.Name}**.");
+                return;
+            }
 
-            var selfRoleEntry = await _context.SelfRoles.AsQueryable()
-                .Where(x => x.GuildId == Context.Guild.Id && x.RoleId == role.Id)
+            var selfRoleEntry = await _databaseContext.SelfRoles.AsQueryable()
+                .Where(x => x.GuildId == context.Guild.Id && x.RoleId == role.Id)
                 .FirstOrDefaultAsync();
 
             if (selfRoleEntry == null)
-                return CommandResult.FromError($"**{role.Name}** is not a self-assignable role.");
-
-            if (selfRoleEntry.Category != null && selfRoleEntry.Category != "default")
             {
-                var removeList = await _context.SelfRoles.AsNoTracking()
-                    .Where(r => r.GuildId == Context.Guild.Id && r.Category == selfRoleEntry.Category &&
-                                guildUser.RoleIds.Contains(r.RoleId))
-                    .Select(r => Context.Guild.GetRole(r.RoleId))
-                    .ToListAsync();
-
-                if (removeList.Any())
-                    await guildUser.RemoveRolesAsync(removeList);
+                await context.RespondAsync($"**{role.Name}** is not a self-assignable role.");
+                return;
             }
 
-            await guildUser.AddRoleAsync(role);
-            return CommandResult.FromSuccess($"{Context.User.Mention} now has the role **{role.Name}**");
+            // TODO: use ReplaceRolesAsync
+            if (selfRoleEntry.Category != null && selfRoleEntry.Category != "default")
+            {
+                var removeList = await _databaseContext.SelfRoles.AsNoTracking()
+                    .Where(r => r.GuildId == context.Guild.Id && r.Category == selfRoleEntry.Category &&
+                                member.Roles.Any(e => e.Id == r.RoleId))
+                    .Select(r => context.Guild.GetRole(r.RoleId))
+                    .Select(r => member.RevokeRoleAsync(r, null))
+                    .ToListAsync();
+
+                await Task.WhenAll(removeList);
+            }
+
+            await member.GrantRoleAsync(role);
+            await context.RespondAsync($"{context.User.Mention} now has the role **{role.Name}**");
         }
 
         [Command("iamnot")]
-        [Alias("iamn", "nr")]
-        [Summary("Removes the requested role from the caller, if allowed")]
-        public async Task<RuntimeResult> IamNotAsync(IRole role)
+        [Aliases("iamn", "nr")]
+        [Description("Removes the requested role from the caller, if allowed")]
+        public async Task IamNotAsync(CommandContext context, DiscordRole role)
         {
-            if (!(Context.User is IGuildUser guildUser))
-                return CommandResult.FromError("Secret easter egg, please message the bot owner!!! 🤕");
+            var member = context.Member;
 
-            if (!guildUser.RoleIds.Contains(role.Id))
-                return CommandResult.FromError($"{Context.User.Mention}... You do not have **{role.Name}**.");
+            if (!member.Roles.Contains(role))
+            {
+                await context.RespondAsync($"{context.User.Mention}... You do not have **{role.Name}**.");
+                return;
+            }
 
-            var selfRoleExists = await _context.SelfRoles.AsNoTracking()
-                .Where(x => x.GuildId == Context.Guild.Id && x.RoleId == role.Id)
+            var selfRoleExists = await _databaseContext.SelfRoles.AsNoTracking()
+                .Where(x => x.GuildId == context.Guild.Id && x.RoleId == role.Id)
                 .AnyAsync();
 
-            if (!selfRoleExists) return CommandResult.FromError($"**{role.Name}** is not a self-assignable role.");
+            if (!selfRoleExists)
+            {
+                await context.RespondAsync($"**{role.Name}** is not a self-assignable role.");
+            }
 
-            await guildUser.RemoveRoleAsync(role);
-
-            return CommandResult.FromSuccess($"{Context.User.Mention} no longer has **{role.Name}**");
+            await member.RevokeRoleAsync(role);
+            await context.RespondAsync($"{context.User.Mention} no longer has **{role.Name}**");
         }
     }
 }

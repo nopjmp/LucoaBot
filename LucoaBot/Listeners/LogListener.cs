@@ -1,20 +1,19 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
-using Discord.WebSocket;
+using DSharpPlus;
 using LucoaBot.Models;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace LucoaBot.Listeners
 {
     public class LogListener
     {
-        private readonly DiscordSocketClient _client;
+        private readonly DiscordClient _client;
         private readonly DatabaseContext _context;
         private readonly BusQueue _busQueue;
 
-        public LogListener(ILogger<LogListener> logger, DatabaseContext context, DiscordSocketClient client,
+        public LogListener(DatabaseContext context, DiscordClient client,
             BusQueue busQueue)
         {
             _context = context;
@@ -35,11 +34,9 @@ namespace LucoaBot.Listeners
                 .Where(e => e.GuildId == userActionMessage.GuildId)
                 .FirstOrDefaultAsync();
 
-            if (config.LogChannel.HasValue)
+            if (config.LogChannel.HasValue && _client.Guilds.TryGetValue(userActionMessage.GuildId, out var guild))
             {
-                var guild = _client.GetGuild(userActionMessage.GuildId);
-                var channel = guild.GetTextChannel(config.LogChannel.GetValueOrDefault());
-
+                var channel = guild.GetChannel(config.LogChannel.GetValueOrDefault());
                 if (channel != null)
                     await channel.SendMessageAsync(
                         $"{userActionMessage.Username}#{userActionMessage.Discriminator} with id `{userActionMessage.Id}` has " +
@@ -53,10 +50,9 @@ namespace LucoaBot.Listeners
                 .Where(e => e.GuildId == eventLogMessage.GuildId)
                 .FirstOrDefaultAsync();
 
-            if (config.LogChannel.HasValue)
+            if (config.LogChannel.HasValue && _client.Guilds.TryGetValue(eventLogMessage.GuildId, out var guild))
             {
-                var guild = _client.GetGuild(eventLogMessage.GuildId);
-                var channel = guild.GetTextChannel(config.LogChannel.GetValueOrDefault());
+                var channel = guild.GetChannel(config.LogChannel.GetValueOrDefault());
 
                 if (channel != null)
                     await channel.SendMessageAsync(

@@ -6,8 +6,8 @@ namespace Paranoid.ChannelBus
 {
     internal sealed class Subscription
     {
-        public Guid Guid { get; private set; }
-        public Func<object, CancellationToken, Task> Handler { get; private set; }
+        public Guid Guid { get; }
+        public Func<object, CancellationToken, Task> Handler { get; }
 
         private Subscription(Func<object, CancellationToken, Task> handler)
         {

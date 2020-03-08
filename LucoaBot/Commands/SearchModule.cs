@@ -1,16 +1,16 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web;
-using Discord;
-using Discord.Commands;
+using DSharpPlus;
+using DSharpPlus.CommandsNext;
+using DSharpPlus.CommandsNext.Attributes;
 
 namespace LucoaBot.Commands
 {
-    [Name("Search")]
-    [Group("search")]
-    [RequireBotPermission(ChannelPermission.SendMessages)]
-    public class SearchModule : ModuleBase<CustomContext>
+    [RequireBotPermissions(Permissions.SendMessages)]
+    public class SearchModule : BaseCommandModule
     {
         private readonly IHttpClientFactory _httpClientFactory;
 
@@ -20,8 +20,8 @@ namespace LucoaBot.Commands
         }
 
         [Command("google")]
-        [Summary("Returns back the first result from Google.")]
-        public async Task<RuntimeResult> GoogleAsync([Remainder] string arg)
+        [Description("Returns back the first result from Google.")]
+        public async Task GoogleAsync(CommandContext context, [RemainingText] [Description("Text to search+")] string arg)
         {
             var query = HttpUtility.UrlEncode(arg);
             var httpClient = _httpClientFactory.CreateClient("noredirect");
@@ -29,8 +29,18 @@ namespace LucoaBot.Commands
             using var response = await httpClient.GetAsync($"https://www.google.com/search?q={query}&btnI");
 
             if (response.StatusCode == HttpStatusCode.Redirect && response.Headers.Location != null)
-                return CommandResult.FromSuccess(response.Headers.Location.ToString());
-            return CommandResult.FromError("Google did not return a valid response.");
+            {
+                var uri = new Uri(response.Headers.Location.ToString());
+                if (uri.Host.EndsWith("google.com"))
+                {
+                    var queryString = HttpUtility.ParseQueryString(uri.Query);
+                    await context.RespondAsync(queryString.Get("q"));
+                }
+            }
+            else
+            {
+                await context.RespondAsync("Google did not return a valid response.");
+            }
         }
     }
 }

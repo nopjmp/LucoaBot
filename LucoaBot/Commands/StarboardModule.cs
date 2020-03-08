@@ -1,47 +1,48 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
-using Discord;
-using Discord.Commands;
-using Discord.WebSocket;
+using DSharpPlus;
+using DSharpPlus.CommandsNext;
+using DSharpPlus.CommandsNext.Attributes;
+using DSharpPlus.Entities;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace LucoaBot.Commands
 {
     // TODO: we need to add logging here and try catch around reaction processing.
-    [Name("Starboard")]
-    [RequireContext(ContextType.Guild)]
-    [RequireUserPermission(GuildPermission.ManageGuild)]
-    [RequireBotPermission(ChannelPermission.SendMessages)]
-    public class StarboardModule : ModuleBase<CustomContext>
+    [RequireGuild]
+    [RequireUserPermissions(Permissions.ManageGuild)]
+    [RequireBotPermissions(Permissions.SendMessages)]
+    [ModuleLifespan(ModuleLifespan.Transient)]
+    public class StarboardModule : BaseCommandModule
     {
-        private readonly DatabaseContext _context;
+        private readonly DatabaseContext _databaseContext;
 
-        public StarboardModule(DatabaseContext context)
+        public StarboardModule(DatabaseContext databaseContext)
         {
-            _context = context;
+            _databaseContext = databaseContext;
         }
 
         [Command("starboard")]
-        [Summary("Sets up the starboard")]
-        public async Task SetStarboardAsync(SocketTextChannel channel = null)
+        [Description("Sets up the starboard")]
+        public async Task SetStarboardAsync(CommandContext context, DiscordChannel channel = null)
         {
-            var config = await _context.GuildConfigs.AsQueryable()
-                .Where(e => e.GuildId == Context.Guild.Id)
+            var config = await _databaseContext.GuildConfigs.AsQueryable()
+                .Where(e => e.GuildId == context.Guild.Id)
                 .FirstOrDefaultAsync();
 
             if (channel == null)
             {
                 config.StarBoardChannel = null;
-                await ReplyAsync("Starboard has been cleared.");
+                await context.RespondAsync("Starboard has been cleared.");
             }
             else
             {
                 config.StarBoardChannel = channel.Id;
-                await ReplyAsync($"Starboard set to {channel.Mention}");
+                await context.RespondAsync($"Starboard set to {channel.Mention}");
             }
 
-            await _context.SaveChangesAsync();
+            await _databaseContext.SaveChangesAsync();
         }
     }
 }

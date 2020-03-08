@@ -10,7 +10,7 @@ namespace Paranoid.ChannelBus
 {
     public class SimpleBus : IBus
     {
-        private struct Request
+        private readonly struct Request
         {
             public readonly object Message;
             public readonly CancellationToken CancellationToken;
@@ -27,49 +27,42 @@ namespace Paranoid.ChannelBus
         
         private readonly ConcurrentQueue<Subscription> _subscriptionRequests = new ConcurrentQueue<Subscription>();
         private readonly ConcurrentQueue<Guid> _unsubscribeRequests = new ConcurrentQueue<Guid>();
-        private readonly ChannelWriter<Request> _channelWriter;
+        private readonly Channel<Request> _channel = Channel.CreateUnbounded<Request>();
+        private ChannelWriter<Request> ChannelWriter => _channel.Writer;
+        private ChannelReader<Request> ChannelReader => _channel.Reader;
 
         public SimpleBus()
         {
-            var channel = Channel.CreateUnbounded<Request>();
-            var reader = channel.Reader;
-            _channelWriter = channel.Writer;
-
-            var _ = Task.Run(async () =>
+            Task.Run(async () =>
             {
                 var subscriptions = new List<Subscription>();
                 
-                while (await reader.WaitToReadAsync())
+                while (await ChannelReader.WaitToReadAsync())
                 {
-                    while (_unsubscribeRequests.TryDequeue(out var guid))
+                    while (_unsubscribeRequests.TryDequeue(out var subscriptionId))
                     {
-                        Trace.TraceInformation($"Removing subscription {guid}");
-                        
-                        // ReSharper disable once AccessToModifiedClosure
+                        var guid = subscriptionId;
                         subscriptions.RemoveAll(s => s.Guid == guid);
                     }
 
                     while (_subscriptionRequests.TryDequeue(out var subscription))
                     {
-                        Trace.TraceInformation(($"Adding subscription {subscription.Guid}"));
                         subscriptions.Add(subscription);
                     }
                     
-                    while (reader.TryRead(out var request))
+                    while (ChannelReader.TryRead(out var request))
                     {
                         var result = true;
                         foreach (var subscription in subscriptions)
                         {
                             if (request.CancellationToken.IsCancellationRequested)
                             {
-                                Trace.TraceWarning("Cancellation requested. Processing stopped");
                                 result = false;
                                 break;
                             }
 
                             try
                             {
-                                Trace.TraceInformation(($"Executing subscription {subscription.Guid}"));
                                 await subscription.Handler.Invoke(request.Message, request.CancellationToken);
                             }
                             catch (Exception e)
@@ -93,7 +86,7 @@ namespace Paranoid.ChannelBus
         {
             var request = new Request(message, cancellationToken, new TaskCompletionSource<bool>());
 
-            _channelWriter.TryWrite(request);
+            ChannelWriter.TryWrite(request);
             return request.CompletionSource.Task;
         }
 

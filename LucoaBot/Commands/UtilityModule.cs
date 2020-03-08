@@ -7,22 +7,24 @@ using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Discord;
-using Discord.Commands;
+using DSharpPlus;
+using DSharpPlus.CommandsNext;
+using DSharpPlus.CommandsNext.Attributes;
+using DSharpPlus.Entities;
 
 namespace LucoaBot.Commands
 {
-    [Name("Utility")]
-    [RequireBotPermission(ChannelPermission.SendMessages)]
-    public class UtilityModule : ModuleBase<CustomContext>
+    
+    [RequireBotPermissions(Permissions.SendMessages)]
+    public class UtilityModule : BaseCommandModule
     {
         private const string BaseUrl = "https://discordapp.com/api/oauth2/authorize";
 
-        private static readonly List<GuildPermission> KeyPermissions = new List<GuildPermission>
+        private static readonly List<Permissions> KeyPermissions = new List<Permissions>
         {
-            GuildPermission.KickMembers, GuildPermission.BanMembers, GuildPermission.ManageChannels,
-            GuildPermission.ManageRoles, GuildPermission.ManageGuild, GuildPermission.ManageWebhooks,
-            GuildPermission.ManageNicknames, GuildPermission.MentionEveryone, GuildPermission.ManageEmojis
+            Permissions.KickMembers, Permissions.BanMembers, Permissions.ManageChannels,
+            Permissions.ManageRoles, Permissions.ManageGuild, Permissions.ManageWebhooks,
+            Permissions.ManageNicknames, Permissions.MentionEveryone, Permissions.ManageEmojis
         };
 
         private readonly IHttpClientFactory _httpClientFactory;
@@ -33,233 +35,233 @@ namespace LucoaBot.Commands
         }
 
         [Command("id")]
-        [Summary("Displays your Discord snowflake.")]
-        public Task IdAsync()
+        [Description("Displays your Discord snowflake.")]
+        public Task IdAsync(CommandContext context)
         {
-            return ReplyAsync($"ID: {Context.User.Id}");
+            return context.RespondAsync($"ID: {context.User.Id}");
         }
 
         [Command("ping")]
-        [Summary("Returns the latency of the bot to Discord.")]
-        public async Task PingAsync()
+        [Description("Returns the latency of the bot to Discord.")]
+        public async Task PingAsync(CommandContext context)
         {
-            var m = await ReplyAsync("Ping: ...");
-            var diff = m.CreatedAt - Context.Message.CreatedAt;
-            await m.ModifyAsync(p =>
-                p.Content = $"Pong: {diff.TotalMilliseconds}ms | Gateway {Context.Client.Latency}ms");
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            var m = await context.RespondAsync("Ping: ...");
+            stopwatch.Stop();
+            await m.ModifyAsync($"Pong: {stopwatch.ElapsedMilliseconds}ms | Gateway {context.Client.Ping}ms");
         }
 
         [Command("serverinfo")]
-        [Summary("Returns the server's information")]
-        [RequireContext(ContextType.Guild)]
-        public async Task ServerInfoAsync()
+        [Description("Returns the server's information")]
+        [RequireGuild]
+        public async Task ServerInfoAsync(CommandContext context)
         {
-            var builder = new EmbedBuilder
+            var builder = new DiscordEmbedBuilder()
             {
-                Author = new EmbedAuthorBuilder
+                Author = new DiscordEmbedBuilder.EmbedAuthor()
                 {
-                    Name = $"{Context.Guild.Owner.Username}#{Context.Guild.Owner.Discriminator}",
-                    IconUrl = Context.Guild.Owner.GetAvatarUrl()
+                    Name = $"{context.Guild.Owner.Username}#{context.Guild.Owner.Discriminator}",
+                    IconUrl = context.Guild.Owner.AvatarUrl
                 },
-                Color = new Color(114, 137, 218),
-                Description = Context.Guild.Name,
-                ThumbnailUrl = Context.Guild.IconUrl
+                Color = new DiscordColor(114, 137, 218),
+                Description = context.Guild.Name,
+                ThumbnailUrl = context.Guild.IconUrl
             };
-
-            var regions = await Context.Guild.GetVoiceRegionsAsync();
 
             var fields = new Dictionary<string, string>
             {
-                {"Id", Context.Guild.Id.ToString()},
+                {"Id", context.Guild.Id.ToString()},
+                {"Region", context.Guild.VoiceRegion.Name},
+                {"Categories", context.Guild.Channels.Count(c => c.Value.IsCategory).ToString()},
+                {"Text Channels", context.Guild.Channels.Count(c => c.Value.Type == ChannelType.Text).ToString()},
+                {"Voice Channels", context.Guild.Channels.Count(c => c.Value.Type == ChannelType.Voice).ToString()},
+                {"Total Members", context.Guild.MemberCount.ToString()},
                 {
-                    "Region", regions.Where(e => e.Id == Context.Guild.VoiceRegionId)
-                        .Select(e => e.Name)
-                        .DefaultIfEmpty("unknown")
-                        .FirstOrDefault()
+                    "Online Members",
+                    context.Guild.Members.Count(e => e.Value.Presence.Status != UserStatus.Offline).ToString()
                 },
-                {"Categories", Context.Guild.CategoryChannels.Count().ToString()},
-                {"Text Channels", Context.Guild.TextChannels.Count().ToString()},
-                {"Voice Channels", Context.Guild.VoiceChannels.Count().ToString()},
-                {"Total Members", Context.Guild.MemberCount.ToString()},
-                {"Online Members", Context.Guild.Users.Count(e => e.Status != UserStatus.Offline).ToString()},
-                {"People", Context.Guild.Users.Count(e => !e.IsBot).ToString()},
-                {"Bots", Context.Guild.Users.Count(e => e.IsBot).ToString()},
-                {"Emojis", Context.Guild.Emotes.Count().ToString()},
-                {"Created At", Context.Guild.CreatedAt.ToString("r")}
+                {"People", context.Guild.Members.Count(e => !e.Value.IsBot).ToString()},
+                {"Bots", context.Guild.Members.Count(e => e.Value.IsBot).ToString()},
+                {"Emojis", context.Guild.Emojis.Count.ToString()},
+                {"Created At", context.Guild.CreationTimestamp.ToString("r")}
             };
 
-            builder.WithFields(
-                fields.Select(e => new EmbedFieldBuilder {Name = e.Key, Value = e.Value, IsInline = true}));
-            await ReplyAsync("", false, builder.Build());
+            foreach (var (name, value) in fields)
+            {
+                builder.AddField(name, value, true);
+            }
+
+            await context.RespondAsync(embed: builder.Build());
         }
 
         [Command("userinfo")]
-        [Summary("Returns the user's information")]
-        [RequireContext(ContextType.Guild)]
-        public Task UserInfoAsync(IGuildUser user = null)
+        [Description("Returns the user's information")]
+        [RequireGuild]
+        public async Task UserInfoAsync(CommandContext context, DiscordMember user = null)
         {
-            if (user == null) user = Context.Guild.GetUser(Context.User.Id);
+            if (user == null) user = await context.Guild.GetMemberAsync(context.User.Id);
 
-            var color = user.Status switch
+            var color = user.Presence.Status switch
             {
-                UserStatus.Idle => new Color(250, 166, 26),
-                UserStatus.AFK => new Color(250, 166, 26),
-                UserStatus.DoNotDisturb => new Color(240, 71, 71),
-                UserStatus.Invisible => new Color(116, 127, 141),
-                UserStatus.Offline => new Color(116, 127, 141),
-                _ => new Color(67, 181, 129)
+                UserStatus.Idle => new DiscordColor(250, 166, 26),
+                UserStatus.DoNotDisturb => new DiscordColor(240, 71, 71),
+                UserStatus.Invisible => new DiscordColor(116, 127, 141),
+                UserStatus.Offline => new DiscordColor(116, 127, 141),
+                _ => new DiscordColor(67, 181, 129)
             };
 
-            var builder = new EmbedBuilder
+            var builder = new DiscordEmbedBuilder()
             {
                 Color = color,
-                Author = new EmbedAuthorBuilder
+                Author = new DiscordEmbedBuilder.EmbedAuthor()
                 {
                     Name = $"{user.Username}#{user.Discriminator}",
-                    IconUrl = user.GetAvatarUrl()
+                    IconUrl = user.AvatarUrl
                 },
-                ThumbnailUrl = user.GetAvatarUrl(),
+                ThumbnailUrl = user.AvatarUrl,
                 Description = user.Mention,
                 Timestamp = DateTimeOffset.Now,
-                Footer = new EmbedFooterBuilder
+                Footer = new DiscordEmbedBuilder.EmbedFooter()
                 {
                     Text = $"ID: {user.Id}"
                 }
             };
 
-            var roles = user.RoleIds
-                .Select(id => Context.Guild.GetRole(id))
-                .Where(e => !e.IsEveryone);
+            // TODO: fix this
+            var roles = user.Roles
+                .Where(e => e.Name != "Everyone");
 
             var fields = new Dictionary<string, string>
             {
-                {"Status", user.Status.ToString()},
-                {"Joined", user.JoinedAt.HasValue ? user.JoinedAt.Value.ToString("r") : "Left Server"},
-                {"Registered", user.CreatedAt.ToString("r")},
+                {"Status", user.Presence.Status.ToString()},
+                {"Joined", user.JoinedAt.ToString("r")},
+                {"Registered", user.CreationTimestamp.ToString("r")},
                 {$"Roles [{roles.Count()}]", string.Join(" ", roles.Select(e => e.Mention))}
             };
 
-            builder.WithFields(
-                fields.Select(e => new EmbedFieldBuilder {Name = e.Key, Value = e.Value, IsInline = true}));
-
-            if (user.GuildPermissions.Administrator)
+            foreach (var (name, value) in fields)
             {
-                builder.AddField("Key Permissions", GuildPermission.Administrator.ToString(), true);
+                builder.AddField(name, value, true);
+            }
+
+            if ((user.PermissionsIn(context.Channel) & Permissions.Administrator) != 0)
+            {
+                builder.AddField("Key Permissions", Permissions.Administrator.ToString(), true);
             }
             else
             {
                 var perms = KeyPermissions
-                    .Where(e => user.GuildPermissions.Has(e))
+                    .Where(e => (user.PermissionsIn(context.Channel) & e) != 0)
                     .Select(e => e.ToString())
                     .ToArray();
                 if (perms.Any())
                     builder.AddField("Key Permissions", string.Join(" ", perms), true);
             }
 
-            return ReplyAsync("", false, builder.Build());
+            await context.RespondAsync(embed: builder.Build());
         }
 
         [Command("stats")]
-        [Summary("Displays the bot statistics")]
-        public async Task StatsAsync()
+        [Description("Displays the bot statistics")]
+        public async Task StatsAsync(CommandContext context)
         {
             var uptime = DateTime.UtcNow - Process.GetCurrentProcess().StartTime.ToUniversalTime();
-            var application = await Context.Client.GetApplicationInfoAsync();
+            var application = await context.Client.GetCurrentApplicationAsync();
 
-            var embedBuilder = new EmbedBuilder
+            var embedBuilder = new DiscordEmbedBuilder()
             {
-                Color = new Color(3447003),
-                Author = new EmbedAuthorBuilder
+                Color = new DiscordColor(3447003),
+                Author = new DiscordEmbedBuilder.EmbedAuthor()
                 {
                     Name = $"LucoaBot",
-                    IconUrl = Context.Client.CurrentUser.GetAvatarUrl()
+                    IconUrl = context.Client.CurrentUser.AvatarUrl
                 }
             };
 
-            embedBuilder.AddField("Owner", $"{application.Owner.Username}#{application.Owner.Discriminator}")
-                .AddField("Uptime", uptime.ToHumanTimeString(2))
-                .AddField("Bot ID", Context.Client.CurrentUser.Id)
-                .AddField("Ping", $"{Context.Client.Latency}ms")
-                .AddField("Guilds", Context.Client.Guilds.Count())
-                .AddField("Total Members", Context.Client.Guilds.Aggregate(0, (a, g) => a + g.MemberCount));
+            var owner = application.Owners.First();
 
-            await ReplyAsync(embed: embedBuilder.Build());
+            embedBuilder.AddField("Owner", $"{owner.Username}#{owner.Discriminator}")
+                .AddField("Uptime", uptime.ToHumanTimeString(2))
+                .AddField("Bot ID", context.Client.CurrentUser.Id.ToString())
+                .AddField("Ping", $"{context.Client.Ping}ms")
+                .AddField("Guilds", context.Client.Guilds.Count.ToString())
+                .AddField("Total Members",
+                    context.Client.Guilds.Aggregate(0, (a, g) => a + g.Value.MemberCount).ToString());
+
+            await context.RespondAsync(embed: embedBuilder.Build());
         }
 
         [Command("invite")]
-        [Summary("Generates an invite link for adding the bot to your Discord")]
-        public async Task InviteAsync()
+        [Description("Generates an invite link for adding the bot to your Discord")]
+        public async Task InviteAsync(CommandContext context)
         {
-            var applicationInfo = await Context.Client.GetApplicationInfoAsync();
-            await ReplyAsync($"{BaseUrl}?client_id={applicationInfo.Id}&permissions=8&scope=bot");
+            var applicationInfo = await context.Client.GetCurrentApplicationAsync();
+            await context.RespondAsync($"{BaseUrl}?client_id={applicationInfo.Id}&permissions=8&scope=bot");
         }
 
         [Command("roll")]
-        [Summary("Generates a number between 1 and the number specified")]
-        public async Task RollAsync(int number)
+        [Description("Generates a number between 1 and the number specified")]
+        public async Task RollAsync(CommandContext context, int number)
         {
-            await ReplyAsync($"{Context.User.Mention} rolled a {RandomNumberGenerator.GetInt32(1, number + 1)}");
+            await context.RespondAsync(
+                $"{context.User.Mention} rolled a {RandomNumberGenerator.GetInt32(1, number + 1)}");
         }
 
         [Command("jumbo")]
-        [Summary("Takes an emote and makes it larger")]
-        public async Task<RuntimeResult> JumboAsync(string emote)
+        [Description("Takes an emote and makes it larger")]
+        public async Task JumboAsync(CommandContext context, DiscordEmoji emote)
         {
-            if (!Emote.TryParse(emote, out var emoteObj))
-                return CommandResult.FromError("Emote must be a guild/server emote.");
-
-            var emoteUri = new Uri(emoteObj.Url);
+            var emoteUri = new Uri(emote.Url);
 
             var httpClient = _httpClientFactory.CreateClient();
-            var response = await httpClient.GetAsync(emoteUri);
-            await using var contentStream = await response.Content.ReadAsStreamAsync();
+            await using var response = await httpClient.GetStreamAsync(emoteUri);
 
-            await Context.Channel.SendFileAsync(contentStream, Path.GetFileName(emoteUri.LocalPath));
-            return CommandResult.FromSuccess("");
+            await context.RespondWithFileAsync(Path.GetFileName(emoteUri.LocalPath), response);
         }
 
         [Command("avatar")]
-        [Summary("If specified, displays the user's avatar; else, displays your avatar")]
-        public async Task AvatarAsync(IUser user = null)
+        [Description("If specified, displays the user's avatar; else, displays your avatar")]
+        public async Task AvatarAsync(CommandContext context, DiscordUser user = null)
         {
-            if (user == null) user = Context.User;
+            if (user == null) user = context.User;
 
-            var avatarUri = new Uri(user.GetAvatarUrl() ?? user.GetDefaultAvatarUrl());
+            var avatarUri = new Uri(user.AvatarUrl);
 
             var httpClient = _httpClientFactory.CreateClient();
             await using var response = await httpClient.GetStreamAsync(avatarUri);
 
-            await Context.Channel.SendFileAsync(response, Path.GetFileName(avatarUri.LocalPath));
+            await context.RespondWithFileAsync(Path.GetFileName(avatarUri.LocalPath), response);
         }
 
         [Command("xkcd")]
-        [Summary("Fetches an xkcd comic. Random for a random id")]
-        public async Task XKCDAsync(string id = null)
+        [Description("Fetches an xkcd comic. Random for a random id")]
+        public async Task XKCDAsync(CommandContext context, string id = null)
         {
             var httpClient = _httpClientFactory.CreateClient();
-
+        
             await using var response = await httpClient.GetStreamAsync("https://xkcd.com/info.0.json");
             var data = await JsonSerializer.DeserializeAsync<XKCDData>(response);
-
+        
             if (id != null)
             {
                 var num = id.StartsWith("rand") ? RandomNumberGenerator.GetInt32(1, data.num + 1) : int.Parse(id);
-
+        
                 await using var numResponse = await httpClient.GetStreamAsync($"https://xkcd.com/{num}/info.0.json");
                 data = await JsonSerializer.DeserializeAsync<XKCDData>(numResponse);
             }
-
-            var embedBuilder = new EmbedBuilder
+        
+            var embedBuilder = new DiscordEmbedBuilder()
             {
                 Title = $"xkcd: {data.safe_title}",
                 ImageUrl = data.img,
-                Footer = new EmbedFooterBuilder
+                Footer = new DiscordEmbedBuilder.EmbedFooter()
                 {
                     Text = data.alt
                 }
             };
-
-            await Context.Channel.SendMessageAsync(embed: embedBuilder.Build());
+        
+            await context.RespondAsync(embed: embedBuilder.Build());
         }
         
         private struct XKCDData

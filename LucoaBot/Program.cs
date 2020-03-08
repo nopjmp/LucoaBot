@@ -1,9 +1,7 @@
 ﻿using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Discord;
-using Discord.Commands;
-using Discord.WebSocket;
+using DSharpPlus;
 using LucoaBot.Listeners;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
@@ -29,13 +27,14 @@ namespace LucoaBot
                     configHost.AddEnvironmentVariables(Prefix);
                     configHost.AddCommandLine(args);
                 })
-                .ConfigureAppConfiguration((hostContext, configApp) =>
+                .ConfigureAppConfiguration((hostContext, config) =>
                 {
-                    configApp.SetBasePath(Directory.GetCurrentDirectory());
-                    configApp.AddEnvironmentVariables(Prefix);
-                    configApp.AddJsonFile("appsettings.json", true);
-                    configApp.AddJsonFile($"appsettings.{hostContext.HostingEnvironment.EnvironmentName}.json", true);
-                    configApp.AddCommandLine(args);
+                    config.SetBasePath(Directory.GetCurrentDirectory());
+                    config.AddJsonFile("appsettings.json", true)
+                        .AddJsonFile($"appsettings.{hostContext.HostingEnvironment.EnvironmentName}.json", true);
+
+                    config.AddEnvironmentVariables(Prefix)
+                        .AddCommandLine(args);
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
@@ -49,21 +48,16 @@ namespace LucoaBot
                                 AllowAutoRedirect = false
                             });
 
-                    services.AddSingleton<IMetricServer>(_ => new MetricServer(9091));
-
                     services.AddHostedService<ApplicationLifetimeHostedService>();
 
-                    services.AddSingleton(_ => new DiscordSocketClient(new DiscordSocketConfig
+                    services.AddSingleton(new DiscordClient(new DiscordConfiguration()
                     {
-                        LogLevel = LogSeverity.Info,
-                        MessageCacheSize = 500
+                        TokenType = TokenType.Bot,
+                        Token =  hostContext.Configuration["Token"],
+                        LogLevel = DSharpPlus.LogLevel.Debug,
+                        UseInternalLogHandler = false
                     }));
-                    services.AddSingleton(_ => new CommandService(new CommandServiceConfig
-                    {
-                        LogLevel = LogSeverity.Info,
-                        CaseSensitiveCommands = false,
-                        DefaultRunMode = RunMode.Async
-                    }));
+                    
                     services.AddSingleton<CommandHandlerService>();
                     
                     services.AddDbContextPool<DatabaseContext>(options => options.UseNpgsql(

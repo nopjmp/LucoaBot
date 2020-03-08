@@ -2,7 +2,8 @@
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
-using LucoaBot.Models;
+using DSharpPlus;
+using DSharpPlus.EventArgs;
 using LucoaBot.Services;
 using Microsoft.Extensions.Logging;
 using SkiaSharp;
@@ -14,27 +15,26 @@ namespace LucoaBot.Listeners
     {
         private const string DiscordRaString = "https://discordapp.com/ra/";
         private readonly ILogger<QrCodeListener> _logger;
-
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly DiscordClient _discordClient;
         private readonly BusQueue _busQueue;
 
-        private readonly IHttpClientFactory _httpClientFactory;
-
-        public QrCodeListener(ILogger<QrCodeListener> logger, BusQueue busQueue,
-            IHttpClientFactory httpClientFactory)
+        public QrCodeListener(ILogger<QrCodeListener> logger,
+            IHttpClientFactory httpClientFactory, DiscordClient discordClient, BusQueue busQueue)
         {
             _logger = logger;
-            _busQueue = busQueue;
             _httpClientFactory = httpClientFactory;
+            _discordClient = discordClient;
+            _busQueue = busQueue;
+
+            _discordClient.MessageCreated += OnMessageReceived;
         }
 
-        public void Initialize()
+        private Task OnMessageReceived(MessageCreateEventArgs args)
         {
-            _busQueue.MessageReceived += OnMessageReceived;
-        }
-
-        private Task OnMessageReceived(CustomContext context)
-        {
-            var attachments = context.Message.Attachments.Select(a => a.Url);
+            if (args.Author.IsBot) return Task.CompletedTask;
+            
+            var attachments = args.Message.Attachments.Select(a => a.Url);
             // XXX: we might need to support embeds if it gets real bad...
             // var images = context.Message.Embeds
             //     .Where(e => e.Image != null)
@@ -55,9 +55,9 @@ namespace LucoaBot.Listeners
                         {
                             _logger.LogInformation(
                                 $"Found malicious login url qr code {result.BarcodeFormat} {result.Text} ");
-                            await context.Message.DeleteAsync();
+                            await args.Message.DeleteAsync();
 
-                            await _busQueue.SubmitLog(context.User, context.Guild,
+                            await _busQueue.SubmitLog(args.Author, args.Guild,
                                 $"sent malicious login url qr code `{result.BarcodeFormat}` `{result.Text}`",
                                 "deleted message");
                         }

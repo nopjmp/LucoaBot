@@ -1,37 +1,43 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
-using Discord;
-using Discord.Commands;
+using DSharpPlus;
+using DSharpPlus.CommandsNext;
+using DSharpPlus.CommandsNext.Attributes;
 using LucoaBot.Models;
 using LucoaBot.Services;
+using Microsoft.AspNetCore.Hosting.Internal;
 using Microsoft.EntityFrameworkCore;
 
 namespace LucoaBot.Commands
 {
-    [Name("CustomCommands")]
-    [RequireContext(ContextType.Guild)]
-    [RequireUserPermission(GuildPermission.ManageMessages)]
-    [RequireBotPermission(ChannelPermission.SendMessages)]
-    public class CustomCommandModule : ModuleBase<CustomContext>
+    [RequireGuild]
+    [RequireUserPermissions(Permissions.ManageMessages)]
+    [RequireBotPermissions(Permissions.SendMessages)]
+    [ModuleLifespan(ModuleLifespan.Transient)]
+    public class CustomCommandModule : BaseCommandModule
     {
-        private readonly CommandService _commandService;
+        private readonly CommandsNextExtension _commandService;
         private readonly DatabaseContext _database;
 
-        public CustomCommandModule(DatabaseContext database, CommandService commandService)
+        public CustomCommandModule(DatabaseContext database, CommandHandlerService commandService)
         {
             _database = database;
-            _commandService = commandService;
+            _commandService = commandService.Commands;
         }
 
         [Command("addcommand")]
-        [Alias("ac")]
-        [Summary("adds/overwrites a custom command")]
-        public async Task<RuntimeResult> AddCommandAsync(string command, params string[] response)
+        [Aliases("ac")]
+        [Description("adds/overwrites a custom command")]
+        public async Task AddCommandAsync(CommandContext context, string command, params string[] response)
         {
             var commandKey = command.ToLowerInvariant();
 
-            if (_commandService.Commands.Any(c => c.Name == commandKey || c.Aliases.Any(a => a == commandKey)))
-                return CommandResult.FromError("You cannot use a command that already exists as a bot command.");
+            if (_commandService.RegisteredCommands.Any(c =>
+                c.Key == commandKey || c.Value.Aliases.Any(a => a == commandKey)))
+            {
+                await context.RespondAsync("You cannot use a command that already exists as a bot command.");
+                return;
+            }
 
             var status = "Updated";
 
@@ -45,7 +51,7 @@ namespace LucoaBot.Commands
                 entry = new CustomCommand
                 {
                     Command = commandKey,
-                    GuildId = Context.Guild.Id
+                    GuildId = context.Guild.Id
                 };
 
                 _database.CustomCommands.Add(entry);
@@ -55,13 +61,13 @@ namespace LucoaBot.Commands
 
             await _database.SaveChangesAsync();
 
-            return CommandResult.FromSuccess($"{status} command `{commandKey}`.");
+            await context.RespondAsync($"{status} command `{commandKey}`.");
         }
 
         [Command("removecommand")]
-        [Alias("rc")]
-        [Summary("removes a custom command")]
-        public async Task<RuntimeResult> RemoveCommandAsync(string command)
+        [Aliases("rc")]
+        [Description("removes a custom command")]
+        public async Task RemoveCommandAsync(CommandContext context, string command)
         {
             var commandKey = command.ToLowerInvariant();
 
@@ -70,12 +76,15 @@ namespace LucoaBot.Commands
                 .FirstOrDefaultAsync();
 
             if (entry == null)
-                return CommandResult.FromError("You can only delete custom commands that exist.");
+            {
+                await context.RespondAsync("You can only delete custom commands that exist.");
+                return;
+            }
 
             _database.Remove(entry);
             await _database.SaveChangesAsync();
 
-            return CommandResult.FromSuccess($"Deleted command `{commandKey}`.");
+            await context.RespondAsync($"Deleted command `{commandKey}`.");
         }
     }
 }

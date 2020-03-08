@@ -25,8 +25,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Discord.Net" Version="2.2.0-dev-20191226.1" />
     <PackageReference Include="dotenv.net" Version="1.0.6" />
+    <PackageReference Include="DSharpPlus" Version="4.0.0-nightly-00665" />
+    <PackageReference Include="DSharpPlus.CommandsNext" Version="4.0.0-nightly-00665" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="3.1.2">
       <PrivateAssets>all</PrivateAssets>
@@ -47,7 +48,6 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="3.1.2" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="3.1.2" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="3.1.2" />
-    <PackageReference Include="prometheus-net" Version="3.4.0" />
     <PackageReference Include="Prometheus.Client.MetricServer" Version="3.1.0" />
     <PackageReference Include="Serilog" Version="2.9.0" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="3.0.2-dev-10257" />

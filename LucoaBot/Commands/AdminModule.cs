@@ -2,66 +2,67 @@
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Discord;
-using Discord.Commands;
-using Discord.WebSocket;
+using DSharpPlus;
+using DSharpPlus.CommandsNext;
+using DSharpPlus.CommandsNext.Attributes;
+using DSharpPlus.Entities;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace LucoaBot.Commands
 {
-    [Name("Admin")]
-    [RequireBotPermission(ChannelPermission.SendMessages)]
-    public class AdminModule : ModuleBase<CustomContext>
+    [RequireBotPermissions(Permissions.SendMessages)]
+    [ModuleLifespan(ModuleLifespan.Transient)]
+    public class AdminModule : BaseCommandModule
     {
         private readonly IMemoryCache _cache;
-        private readonly DatabaseContext _context;
+        private readonly DatabaseContext _databaseContext;
 
-        public AdminModule(DatabaseContext context, IMemoryCache cache)
+        public AdminModule(DatabaseContext databaseContext, IMemoryCache cache)
         {
-            _context = context;
+            _databaseContext = databaseContext;
             _cache = cache;
         }
 
         [Command("logging")]
-        [Summary("Sets up the logging channel for events.")]
-        [RequireContext(ContextType.Guild)]
-        [RequireUserPermission(GuildPermission.ManageGuild)]
-        public async Task LogAsync(SocketTextChannel channel)
+        [Description("Sets up the logging channel for events.")]
+        [RequireGuild]
+        [RequireUserPermissions(Permissions.ManageGuild)]
+        public async Task LogAsync(CommandContext context, DiscordChannel channel)
         {
-            var config = await _context.GuildConfigs.AsQueryable()
-                .Where(e => e.GuildId == Context.Guild.Id)
+            var config = await _databaseContext.GuildConfigs.AsQueryable()
+                .Where(e => e.GuildId == context.Guild.Id)
                 .FirstOrDefaultAsync();
 
             if (channel == null)
             {
                 config.LogChannel = null;
-                await ReplyAsync("Log channel has been cleared.");
+                await context.RespondAsync("Log channel has been cleared.");
             }
             else
             {
                 config.LogChannel = channel.Id;
-                await ReplyAsync($"Log channel set to {channel.Mention}");
+                await context.RespondAsync($"Log channel set to {channel.Mention}");
             }
 
-            await _context.SaveChangesAsync();
+            await _databaseContext.SaveChangesAsync();
         }
 
         [Command("prune")]
-        [Summary("Deletes [num] of messages from the current channel.")]
-        [RequireContext(ContextType.Guild)]
-        [RequireUserPermission(GuildPermission.ManageMessages)]
-        [RequireBotPermission(GuildPermission.ManageMessages)]
-        public async Task PruneAsync(int num)
+        [Description("Deletes [num] of messages from the current channel.")]
+        [RequireGuild]
+        [RequireUserPermissions(Permissions.ManageMessages)]
+        [RequireBotPermissions(Permissions.ManageMessages)]
+        public async Task PruneAsync(CommandContext context, int num)
         {
-            switch (Context.Channel)
+            switch (context.Channel.Type)
             {
-                case ITextChannel c:
+                case ChannelType.Text:
                 {
-                    var messages = await c.GetMessagesAsync(num + 1).FlattenAsync();
-                    await c.DeleteMessagesAsync(messages);
-                    var message = await ReplyAsync($"Bulk deleted {num} messages.");
+                    var messages = await context.Channel.GetMessagesAsync(num + 1);
+                    await context.Channel.DeleteMessagesAsync(messages);
+                    var message = await context.RespondAsync($"Bulk deleted {num} messages.");
                     await Task.Delay(TimeSpan.FromSeconds(5));
 
                     await message.DeleteAsync();
@@ -69,7 +70,7 @@ namespace LucoaBot.Commands
                     break;
                 default:
                 {
-                    var message = await ReplyAsync("We can't delete messages here.");
+                    var message = await context.RespondAsync("We can't delete messages here.");
                     await Task.Delay(TimeSpan.FromSeconds(5));
 
                     await message.DeleteAsync();
@@ -79,58 +80,54 @@ namespace LucoaBot.Commands
         }
 
         [Command("prefix")]
-        [Summary("Changes the prefix for the bot.")]
-        [RequireContext(ContextType.Guild)]
-        [RequireUserPermission(GuildPermission.Administrator)]
-        public async Task PrefixAsync(string prefix)
+        [Description("Changes the prefix for the bot.")]
+        [RequireGuild]
+        [RequireUserPermissions(Permissions.Administrator)]
+        public async Task PrefixAsync(CommandContext context, string prefix)
         {
             if (string.IsNullOrWhiteSpace(prefix) || prefix.Length > 16)
             {
-                await ReplyAsync("Prefix must be between 1 and 16 characters.");
+                await context.RespondAsync("Prefix must be between 1 and 16 characters.");
             }
             else
             {
-                var config = await _context.GuildConfigs.AsQueryable()
-                    .Where(e => e.GuildId == Context.Guild.Id)
+                var config = await _databaseContext.GuildConfigs.AsQueryable()
+                    .Where(e => e.GuildId == context.Guild.Id)
                     .SingleOrDefaultAsync();
 
                 config.Prefix = prefix;
-                await _context.SaveChangesAsync();
+                await _databaseContext.SaveChangesAsync();
 
-                _cache.Set("guildconfig:" + Context.Guild.Id, prefix);
+                _cache.Set("guildconfig:" + context.Guild.Id, prefix);
 
-                await ReplyAsync(
-                    $"{Context.User.Username}#{Context.User.Discriminator} has changed the prefix to `{prefix}`");
+                await context.RespondAsync(
+                    $"{context.User.Username}#{context.User.Discriminator} has changed the prefix to `{prefix}`");
             }
         }
 
         [Command("guilds")]
-        [Summary("Lists the Guilds the bot is connected to.")]
+        [Description("Lists the Guilds the bot is connected to.")]
         [RequireOwner]
-        public async Task GuildsAsync()
+        public async Task GuildsAsync(CommandContext context)
         {
             var sb = new StringBuilder();
-            foreach (var guild in Context.Client.Guilds)
+            foreach (var (id, guild) in context.Client.Guilds)
             {
-                sb.Append(guild.Id);
+                sb.Append(id);
                 sb.Append(":");
                 sb.AppendLine(guild.Name);
             }
 
-            await ReplyAsync(sb.ToString());
+            await context.RespondAsync(sb.ToString());
         }
 
         [Command("leaveguild")]
-        [Summary("Leaves a Guild")]
+        [Description("Leaves a Guild")]
         [RequireOwner]
-        public async Task LeaveGuildAsync(ulong guildId)
+        public async Task LeaveGuildAsync(CommandContext context, DiscordGuild guild)
         {
-            var guild = Context.Client.GetGuild(guildId);
-            if (guild != null)
-            {
-                await guild.LeaveAsync();
-                await ReplyAsync($"Left guild {guildId} {guild.Name}");
-            }
+            await guild.LeaveAsync();
+            await context.RespondAsync($"Left guild {guild.Id} {guild.Name}");
         }
     }
 }
