@@ -48,32 +48,21 @@ namespace LucoaBot.Listeners
 
         private Task ClientOnMessageReactionRemovedEmoji(MessageReactionRemoveEmojiEventArgs args)
         {
-            if (args.Message.Author.IsBot) return Task.CompletedTask;
-
             return OnReactionEvent(args.Emoji, true, args.Guild, args.Message);
         }
 
         private Task ClientOnMessageReactionAdded(MessageReactionAddEventArgs args)
         {
-            // ignore bot messages
-            if (args.Message.Author.IsBot) return Task.CompletedTask;
-            
             return OnReactionEvent(args.Emoji, false, args.Guild, args.Message);
         }
 
         private Task ClientOnMessageReactionRemoved(MessageReactionRemoveEventArgs args)
         {
-            // ignore bot messages
-            if (args.Message.Author.IsBot) return Task.CompletedTask;
-            
             return OnReactionEvent(args.Emoji, false, args.Guild, args.Message);
         }
 
         private Task ClientOnMessageReactionsCleared(MessageReactionsClearEventArgs args)
         {
-            // ignore bot messages
-            if (args.Message.Author.IsBot) return Task.CompletedTask;
-            
             return OnReactionEvent(_emoji, true, args.Guild, args.Message);
         }
 
@@ -219,6 +208,12 @@ namespace LucoaBot.Listeners
                 // only process if the starboard channel has a value and it's not in the starboard.
                 if (starboardChannelId.HasValue && message.ChannelId != starboardChannelId.Value)
                 {
+                    // Fetch the message contents
+                    message = await message.Channel.GetMessageAsync(message.Id);
+                    
+                    // ignore bot messages
+                    if (message.Author.IsBot) return;
+                    
                     // only check the last days of messages
                     var dateThreshold = DateTimeOffset.Now.AddDays(-1);
                     if (message.CreationTimestamp < dateThreshold)
@@ -230,8 +225,6 @@ namespace LucoaBot.Listeners
                         reactionCount = message.Reactions.Count(e => e.Emoji.Equals(_emoji));
                     }
 
-                    // Fetch the message contents
-                    message = await message.Channel.GetMessageAsync(message.Id);
                     await ProcessReaction(starboardChannelId.Value, message.Channel, message, reactionCount);
                 }
             }
