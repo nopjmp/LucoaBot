@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Threading.Tasks;
@@ -101,12 +102,14 @@ namespace LucoaBot.Listeners
             }
         }
 
+        private static readonly IReadOnlyList<DiscordEmbedField> EmptyEmbedFields = new List<DiscordEmbedField>();
+
         private async Task<DiscordMessage> FindStarPost(DiscordChannel starboardChannel, string messageId,
             bool timeLimited = true)
         {
-            // TODO: optimize this with a cache when we hit 100+ servers with star msg id -> chan,msg id
             var dateThreshold = DateTimeOffset.Now.AddDays(-1);
 
+            // TODO: optimize this with a cache when we hit 100+ servers with star msg id -> chan,msg id
             var messages = await starboardChannel.GetMessagesAsync();
             while (messages.Count > 0)
             {
@@ -118,7 +121,8 @@ namespace LucoaBot.Listeners
                         return null;
                     }
 
-                    if (message.Author.Id == _client.CurrentUser.Id && message.Embeds.SelectMany(e => e.Fields)
+                    if (message.Author.Id == _client.CurrentUser.Id && message.Embeds
+                        .SelectMany(e => e.Fields ?? EmptyEmbedFields)
                         .Any(f => f.Name == "Message ID" && f.Value == messageId))
                     {
                         return message;
