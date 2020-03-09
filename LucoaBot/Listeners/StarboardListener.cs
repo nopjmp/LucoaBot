@@ -80,9 +80,6 @@ namespace LucoaBot.Listeners
 
         private async Task Client_MessageDeleted(MessageDeleteEventArgs args)
         {
-            // ignore bot messages
-            if (args.Message.Author.IsBot) return;
-            
             try
             {
                 var starboardChannelId = await GetStarboardChannel(args.Guild.Id);
@@ -90,27 +87,11 @@ namespace LucoaBot.Listeners
                     starboardChannelId != 0)
                 {
                     var starboardChannel = args.Guild.GetChannel(starboardChannelId.Value);
-                    var messageId = args.Message.Id.ToString();
 
-                    // TODO: optimize this with a cache when we hit 100+ servers with star msg id -> chan,msg id
-                    var messages = await starboardChannel.GetMessagesAsync();
-                    while (messages.Count > 0)
+                    var starMessage = await FindStarPost(starboardChannel, args.Message.Id.ToString(), false);
+                    if (starMessage != null)
                     {
-                        var starMessage = (from m in messages
-                            where m.Author.Id == _client.CurrentUser.Id
-                                  && m.Embeds
-                                      .Where(e => e.Fields != null)
-                                      .SelectMany(e => e.Fields)
-                                      .Any(f => f.Name == "Message ID" && f.Value == messageId)
-                            select m).FirstOrDefault();
-
-                        if (starMessage != null)
-                        {
-                            await starMessage.DeleteAsync();
-                            break;
-                        }
-
-                        messages = await starboardChannel.GetMessagesBeforeAsync(messages.Last().Id);
+                        await starMessage.DeleteAsync();
                     }
                 }
             }
@@ -120,16 +101,34 @@ namespace LucoaBot.Listeners
             }
         }
 
-        private async Task<DiscordMessage> FindStarPost(DiscordChannel starboardChannel, DiscordMessage message)
+        private async Task<DiscordMessage> FindStarPost(DiscordChannel starboardChannel, string messageId,
+            bool timeLimited = true)
         {
-            var messageId = message.Id.ToString();
+            // TODO: optimize this with a cache when we hit 100+ servers with star msg id -> chan,msg id
             var dateThreshold = DateTimeOffset.Now.AddDays(-1);
+
             var messages = await starboardChannel.GetMessagesAsync();
-            return (from m in messages
-                where m.Author.Id == _client.CurrentUser.Id
-                      && m.CreationTimestamp > dateThreshold
-                      && m.Embeds.SelectMany(e => e.Fields).Any(f => f.Name == "Message ID" && f.Value == messageId)
-                select m).FirstOrDefault();
+            while (messages.Count > 0)
+            {
+                foreach (var message in messages)
+                {
+                    // break when message is too old.
+                    if (timeLimited && message.CreationTimestamp <= dateThreshold)
+                    {
+                        return null;
+                    }
+
+                    if (message.Author.Id == _client.CurrentUser.Id && message.Embeds.SelectMany(e => e.Fields)
+                        .Any(f => f.Name == "Message ID" && f.Value == messageId))
+                    {
+                        return message;
+                    }
+                }
+
+                messages = await starboardChannel.GetMessagesBeforeAsync(messages.Last().Id);
+            }
+
+            return null;
         }
 
         private async Task ProcessReaction(ulong starboardChannelId, DiscordChannel channel, DiscordMessage message,
@@ -138,7 +137,7 @@ namespace LucoaBot.Listeners
             var starboardChannel = channel.Guild.GetChannel(starboardChannelId);
             if (starboardChannel != null)
             {
-                var starboardMessage = await FindStarPost(starboardChannel, message);
+                var starboardMessage = await FindStarPost(starboardChannel, message.Id.ToString());
 
                 if (count < DefaultThreshold)
                 {
@@ -210,10 +209,10 @@ namespace LucoaBot.Listeners
                 {
                     // Fetch the message contents
                     message = await message.Channel.GetMessageAsync(message.Id);
-                    
+
                     // ignore bot messages
                     if (message.Author.IsBot || message.ChannelId == starboardChannelId.Value) return;
-                    
+
                     // only check the last days of messages
                     var dateThreshold = DateTimeOffset.Now.AddDays(-1);
                     if (message.CreationTimestamp < dateThreshold)
