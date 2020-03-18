@@ -131,12 +131,15 @@ namespace LucoaBot.Commands
             // TODO: use ReplaceRolesAsync
             if (selfRoleEntry.Category != null && selfRoleEntry.Category != "default")
             {
-                var removeList = await _databaseContext.SelfRoles.AsNoTracking()
-                    .Where(r => r.GuildId == context.Guild.Id && r.Category == selfRoleEntry.Category &&
-                                member.Roles.Any(e => e.Id == r.RoleId))
-                    .Select(r => context.Guild.GetRole(r.RoleId))
-                    .Select(r => member.RevokeRoleAsync(r, null))
+                var roles = await _databaseContext.SelfRoles.AsNoTracking()
+                    .Where(r => r.GuildId == context.Guild.Id && r.Category == selfRoleEntry.Category)
+                    .Select(r => r.RoleId)
                     .ToListAsync();
+
+                var removeList = member.Roles.Where(r => roles.Contains(r.Id))
+                    .Select(r => context.Guild.GetRole(r.Id))
+                    .Select(r => member.RevokeRoleAsync(r, null))
+                    .ToList();
 
                 await Task.WhenAll(removeList);
             }
