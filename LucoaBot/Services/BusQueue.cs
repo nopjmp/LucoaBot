@@ -23,21 +23,12 @@ namespace LucoaBot.Services
         {
             _client = client;
             _bus = new SimpleBus();
-        }
-
-        public void Start()
-        {
+            
             _client.GuildMemberAdded += OnUserJoined;
             _client.GuildMemberRemoved += OnUserLeft;
 
             _userActionGuid = _bus.Subscribe<UserActionMessage>(OnUserAction);
             _logGuid = _bus.Subscribe<EventLogMessage>(OnLog);
-        }
-
-        public void Stop()
-        {
-            _bus.Unsubscribe(_userActionGuid);
-            _bus.Unsubscribe(_logGuid);
         }
 
         #region User Action Handler

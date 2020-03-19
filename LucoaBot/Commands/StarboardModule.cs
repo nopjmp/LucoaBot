@@ -4,6 +4,7 @@ using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
+using LucoaBot.Models;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,6 +32,16 @@ namespace LucoaBot.Commands
                 .Where(e => e.GuildId == context.Guild.Id)
                 .FirstOrDefaultAsync();
 
+            if (config == null)
+            {
+                config = new GuildConfig()
+                {
+                    Prefix = ".",
+                    GuildId = context.Guild.Id
+                };
+                await _databaseContext.AddAsync(config);
+            }
+            
             if (channel == null)
             {
                 config.StarBoardChannel = null;

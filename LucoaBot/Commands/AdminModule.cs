@@ -6,6 +6,7 @@ using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
+using LucoaBot.Models;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -35,6 +36,16 @@ namespace LucoaBot.Commands
                 .Where(e => e.GuildId == context.Guild.Id)
                 .FirstOrDefaultAsync();
 
+            if (config == null)
+            {
+                config = new GuildConfig()
+                {
+                    Prefix = ".",
+                    GuildId = context.Guild.Id
+                };
+                await _databaseContext.AddAsync(config);
+            }
+            
             if (channel == null)
             {
                 config.LogChannel = null;
@@ -94,6 +105,16 @@ namespace LucoaBot.Commands
                 var config = await _databaseContext.GuildConfigs.AsQueryable()
                     .Where(e => e.GuildId == context.Guild.Id)
                     .SingleOrDefaultAsync();
+                
+                if (config == null)
+                {
+                    config = new GuildConfig()
+                    {
+                        Prefix = ".",
+                        GuildId = context.Guild.Id
+                    };
+                    await _databaseContext.AddAsync(config);
+                }
 
                 config.Prefix = prefix;
                 await _databaseContext.SaveChangesAsync();

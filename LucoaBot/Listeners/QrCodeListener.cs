@@ -47,6 +47,9 @@ namespace LucoaBot.Listeners
                 try
                 {
                     using var bitmap = SKBitmap.Decode(response);
+                    if (bitmap == null)
+                        return;
+                    
                     var reader = new BarcodeReader();
                     var result = reader.Decode(bitmap);
                     if (result != null)

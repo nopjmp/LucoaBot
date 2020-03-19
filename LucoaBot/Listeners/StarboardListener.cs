@@ -76,7 +76,7 @@ namespace LucoaBot.Listeners
                 .Where(e => e.GuildId == guildId)
                 .FirstOrDefaultAsync();
 
-            return config.StarBoardChannel;
+            return config?.StarBoardChannel;
         }
 
         private async Task Client_MessageDeleted(MessageDeleteEventArgs args)
