@@ -32,7 +32,7 @@ namespace LucoaBot.Listeners
 
         private Task OnMessageReceived(MessageCreateEventArgs args)
         {
-            if (args.Author.IsBot) return Task.CompletedTask;
+            if (args.Author.IsBot || args.Guild == null) return Task.CompletedTask;
             
             var attachments = args.Message.Attachments.Select(a => a.Url);
             // XXX: we might need to support embeds if it gets real bad...

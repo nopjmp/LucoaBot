@@ -205,6 +205,9 @@ namespace LucoaBot.Listeners
 
         private async Task OnReactionEvent(DiscordEmoji emoji, bool cleared, DiscordGuild guild, DiscordMessage message)
         {
+            // ignore DM reactions
+            if (guild == null) return;
+            
             if (emoji.Equals(_emoji))
             {
                 var starboardChannelId = await GetStarboardChannel(guild.Id);

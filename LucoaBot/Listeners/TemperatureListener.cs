@@ -28,9 +28,15 @@ namespace LucoaBot.Listeners
         private async Task TemperatureListenerAsync(MessageCreateEventArgs args)
         {
             if (args.Author.IsBot) return;
+
+            var permission = true;
+            if (args.Guild != null) // check if we can send messages
+            {
+                var self = await args.Guild.GetMemberAsync(_client.CurrentUser.Id);
+                permission = (self.PermissionsIn(args.Channel) & Permissions.SendMessages) != 0;
+            }
             
-            var self = await args.Guild.GetMemberAsync(_client.CurrentUser.Id);
-            if ((self.PermissionsIn(args.Channel) & Permissions.SendMessages) != 0)
+            if (permission)
             {
                 try
                 {
