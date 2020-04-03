@@ -1,19 +1,16 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Exceptions;
 using DSharpPlus.Entities;
+using EFCoreSecondLevelCacheInterceptor;
 using LucoaBot.Commands;
-using LucoaBot.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Prometheus;
+using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace LucoaBot.Services
 {
@@ -52,12 +49,13 @@ namespace LucoaBot.Services
             using var scope = _services.CreateScope();
             var databaseContext = scope.ServiceProvider.GetService<DatabaseContext>();
 
-            var guildConfig = await databaseContext.GuildConfigs.AsNoTracking()
+            var guildConfigPrefix = await databaseContext.GuildConfigs.AsNoTracking()
                 .Where(e => e.GuildId == msg.Channel.GuildId)
+                .Select(e => e.Prefix)
+                .Cacheable(CacheExpirationMode.Sliding, TimeSpan.FromMinutes(5))
                 .FirstOrDefaultAsync();
 
-            if (guildConfig != null) prefix = guildConfig.Prefix;
-            return msg.GetStringPrefixLength(prefix);
+            return msg.GetStringPrefixLength(guildConfigPrefix ?? prefix);
         }
 
         private async Task CommandsOnCommandErrored(CommandErrorEventArgs args)
@@ -70,12 +68,14 @@ namespace LucoaBot.Services
                     var context = scope.ServiceProvider.GetService<DatabaseContext>();
                     var customCommand = await context.CustomCommands.AsNoTracking()
                         .Where(c => c.Command == e.CommandName)
+                        .Select(c => c.Response)
+                        .Cacheable(CacheExpirationMode.Sliding, TimeSpan.FromMinutes(5))
                         .FirstOrDefaultAsync();
 
                     if (customCommand != null)
                     {
                         // filter out @everyone and @here mentions...
-                        var response = customCommand.Response
+                        var response = customCommand
                             // ReSharper disable once StringLiteralTypo
                             .Replace("@everyone", "@\u0435veryone")
                             .Replace("@here", "@h\u0435re");
@@ -84,6 +84,9 @@ namespace LucoaBot.Services
 
                     break;
                 }
+                default:
+                    _logger.Log(LogLevel.Warning, args.Exception, "Exception occured while processing command.");
+                    break;
             }
         }
     }

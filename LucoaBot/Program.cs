@@ -1,7 +1,9 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using DSharpPlus;
+using EFCoreSecondLevelCacheInterceptor;
 using LucoaBot.Listeners;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
@@ -48,6 +50,8 @@ namespace LucoaBot
                                 AllowAutoRedirect = false
                             });
 
+                    services.AddEFSecondLevelCache(options => options.UseMemoryCacheProvider());
+                    
                     services.AddHostedService<ApplicationLifetimeHostedService>();
 
                     services.AddSingleton(new DiscordClient(new DiscordConfiguration()
@@ -60,9 +64,12 @@ namespace LucoaBot
                     
                     services.AddSingleton<CommandHandlerService>();
                     
-                    services.AddDbContextPool<DatabaseContext>(options => options.UseNpgsql(
-                        hostContext.Configuration.GetConnectionString("DefaultConnection"),
-                        optionsBuilder => optionsBuilder.EnableRetryOnFailure(10)));
+                    services.AddDbContextPool<DatabaseContext>(options =>
+                    {
+                        options.UseNpgsql(
+                            hostContext.Configuration.GetConnectionString("DefaultConnection"),
+                            optionsBuilder => optionsBuilder.EnableRetryOnFailure(10));
+                    });
                     
                     services.AddSingleton<BusQueue>();
                     
