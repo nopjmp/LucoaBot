@@ -51,28 +51,31 @@ namespace LucoaBot
                             });
 
                     services.AddEFSecondLevelCache(options => options.UseMemoryCacheProvider());
-                    
+
                     services.AddHostedService<ApplicationLifetimeHostedService>();
 
                     services.AddSingleton(new DiscordClient(new DiscordConfiguration()
                     {
                         TokenType = TokenType.Bot,
-                        Token =  hostContext.Configuration["Token"],
+                        Token = hostContext.Configuration["Token"],
+                        AutoReconnect = true,
+#if DEBUG
                         LogLevel = DSharpPlus.LogLevel.Debug,
+#endif
                         UseInternalLogHandler = false
                     }));
-                    
+
                     services.AddSingleton<CommandHandlerService>();
-                    
+
                     services.AddDbContextPool<DatabaseContext>(options =>
                     {
                         options.UseNpgsql(
                             hostContext.Configuration.GetConnectionString("DefaultConnection"),
                             optionsBuilder => optionsBuilder.EnableRetryOnFailure(10));
                     });
-                    
+
                     services.AddSingleton<BusQueue>();
-                    
+
                     services.AddSingleton<LogListener>();
                     services.AddSingleton<StarboardListener>();
                     services.AddSingleton<TemperatureListener>();
