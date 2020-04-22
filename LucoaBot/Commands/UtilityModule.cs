@@ -233,13 +233,11 @@ namespace LucoaBot.Commands
                 var width = Math.Min(128, bitmap.Width * 2);
                 var height = Math.Min(128, bitmap.Height * 2);
 
-                var newBitmap = new SKBitmap(new SKImageInfo(width, height, bitmap.ColorType, bitmap.AlphaType));
+                SKBitmap newBitmap;
+                using var destination = new SKBitmap(new SKImageInfo(width, height, bitmap.ColorType, bitmap.AlphaType));
                 if (bitmap.Width < width && bitmap.Height < height)
                 {
-                    if (!bitmap.ScalePixels(newBitmap, SKFilterQuality.High))
-                    {
-                        newBitmap = bitmap;
-                    }
+                    newBitmap = !bitmap.ScalePixels(destination, SKFilterQuality.High) ? bitmap : destination;
                 }
                 else
                 {
