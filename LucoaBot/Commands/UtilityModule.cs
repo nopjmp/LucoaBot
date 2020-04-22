@@ -11,6 +11,7 @@ using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
+using SkiaSharp;
 
 namespace LucoaBot.Commands
 {
@@ -217,7 +218,37 @@ namespace LucoaBot.Commands
             var httpClient = _httpClientFactory.CreateClient();
             await using var response = await httpClient.GetStreamAsync(emoteUri);
 
-            await context.RespondWithFileAsync(Path.GetFileName(emoteUri.LocalPath), response);
+            if (emote.IsAnimated)
+            {
+                var filename = Path.GetFileName(emoteUri.LocalPath);
+                await context.RespondWithFileAsync(filename, response);
+            }
+            else
+            {
+                var filename = Path.GetFileNameWithoutExtension(emoteUri.LocalPath);
+                using var bitmap = SKBitmap.Decode(response);
+                if (bitmap == null)
+                    return;
+
+                var width = Math.Min(128, bitmap.Width * 2);
+                var height = Math.Min(128, bitmap.Height * 2);
+
+                var newBitmap = new SKBitmap(new SKImageInfo(width, height, bitmap.ColorType, bitmap.AlphaType));
+                if (bitmap.Width < width && bitmap.Height < height)
+                {
+                    if (!bitmap.ScalePixels(newBitmap, SKFilterQuality.High))
+                    {
+                        newBitmap = bitmap;
+                    }
+                }
+                else
+                {
+                    newBitmap = bitmap;
+                }
+
+                var data = newBitmap.PeekPixels().Encode(SKWebpEncoderOptions.Default);
+                await context.RespondWithFileAsync(filename + ".webp", data.AsStream());
+            }
         }
 
         [Command("avatar")]
