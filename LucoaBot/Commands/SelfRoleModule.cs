@@ -58,7 +58,7 @@ namespace LucoaBot.Commands
         [RequireUserPermissions(Permissions.ManageRoles)]
         public async Task AddRoleAsync(CommandContext context, DiscordRole role, string category = null)
         {
-            var selfRoleCheck = await _databaseContext.SelfRoles.AsNoTracking()
+            var selfRoleCheck = await _databaseContext.SelfRoles
                 .Where(r => r.GuildId == context.Guild.Id && r.RoleId == role.Id)
                 .AnyAsync();
 
@@ -89,7 +89,7 @@ namespace LucoaBot.Commands
         [RequireUserPermissions(Permissions.ManageRoles)]
         public async Task RemoveRoleAsync(CommandContext context, DiscordRole role)
         {
-            var selfRoleEntry = await _databaseContext.SelfRoles.AsQueryable()
+            var selfRoleEntry = await _databaseContext.SelfRoles
                 .Where(r => r.GuildId == context.Guild.Id && r.RoleId == role.Id)
                 .FirstOrDefaultAsync();
 
@@ -118,7 +118,7 @@ namespace LucoaBot.Commands
                 return;
             }
 
-            var selfRoleEntry = await _databaseContext.SelfRoles.AsQueryable()
+            var selfRoleEntry = await _databaseContext.SelfRoles.AsNoTracking()
                 .Where(x => x.GuildId == context.Guild.Id && x.RoleId == role.Id)
                 .FirstOrDefaultAsync();
 
