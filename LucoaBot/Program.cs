@@ -67,7 +67,7 @@ namespace LucoaBot
 
                     services.AddSingleton<CommandHandlerService>();
 
-                    services.AddDbContextPool<DatabaseContext>(options =>
+                    services.AddDbContext<DatabaseContext>(options =>
                     {
                         options.UseNpgsql(
                             hostContext.Configuration.GetConnectionString("DefaultConnection"),
