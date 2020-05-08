@@ -19,7 +19,7 @@ namespace LucoaBot.Commands
     [RequireBotPermissions(Permissions.SendMessages)]
     public class UtilityModule : BaseCommandModule
     {
-        private const string BaseUrl = "https://discordapp.com/api/oauth2/authorize";
+        private const string BaseUrl = "https://discord.com/api/oauth2/authorize";
 
         private static readonly List<Permissions> KeyPermissions = new List<Permissions>
         {

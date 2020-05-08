@@ -13,7 +13,9 @@ namespace LucoaBot.Listeners
 {
     public class QrCodeListener
     {
-        private const string DiscordRaString = "https://discordapp.com/ra/";
+        private const string DiscordAppRaString = "https://discordapp.com/ra/";
+        private const string DiscordRaString = "https://discord.com/ra/";
+        
         private readonly ILogger<QrCodeListener> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly DiscordClient _discordClient;
@@ -54,7 +56,7 @@ namespace LucoaBot.Listeners
                     var result = reader.Decode(bitmap);
                     if (result != null)
                     {
-                        if (result.Text.StartsWith(DiscordRaString))
+                        if (result.Text.StartsWith(DiscordRaString) || result.Text.StartsWith(DiscordAppRaString))
                         {
                             _logger.LogInformation(
                                 $"Found malicious login url qr code {result.BarcodeFormat} {result.Text} ");
