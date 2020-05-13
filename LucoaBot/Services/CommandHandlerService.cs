@@ -5,7 +5,6 @@ using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Exceptions;
 using DSharpPlus.Entities;
-using EFCoreSecondLevelCacheInterceptor;
 using LucoaBot.Commands;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -52,7 +51,6 @@ namespace LucoaBot.Services
             var guildConfigPrefix = await databaseContext.GuildConfigs.AsNoTracking()
                 .Where(e => e.GuildId == msg.Channel.GuildId)
                 .Select(e => e.Prefix)
-                .Cacheable(CacheExpirationMode.Sliding, TimeSpan.FromMinutes(5))
                 .FirstOrDefaultAsync();
 
             return msg.GetStringPrefixLength(guildConfigPrefix ?? prefix);
@@ -69,7 +67,6 @@ namespace LucoaBot.Services
                     var customCommand = await context.CustomCommands.AsNoTracking()
                         .Where(c => c.Command == e.CommandName)
                         .Select(c => c.Response)
-                        .Cacheable(CacheExpirationMode.Sliding, TimeSpan.FromMinutes(5))
                         .FirstOrDefaultAsync();
 
                     if (customCommand != null)

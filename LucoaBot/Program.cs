@@ -1,9 +1,7 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using DSharpPlus;
-using EFCoreSecondLevelCacheInterceptor;
 using LucoaBot.Listeners;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
@@ -11,8 +9,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Prometheus;
 using Serilog;
+using LogLevel = DSharpPlus.LogLevel;
 
 namespace LucoaBot
 {
@@ -50,8 +48,6 @@ namespace LucoaBot
                                 AllowAutoRedirect = false
                             });
 
-                    services.AddEFSecondLevelCache(options => options.UseMemoryCacheProvider());
-
                     services.AddHostedService<ApplicationLifetimeHostedService>();
 
                     services.AddSingleton(new DiscordClient(new DiscordConfiguration()
@@ -60,7 +56,7 @@ namespace LucoaBot
                         Token = hostContext.Configuration["Token"],
                         AutoReconnect = true,
 #if DEBUG
-                        LogLevel = DSharpPlus.LogLevel.Debug,
+                        LogLevel = LogLevel.Debug,
 #endif
                         UseInternalLogHandler = false
                     }));
