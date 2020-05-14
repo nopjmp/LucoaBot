@@ -15,8 +15,8 @@ namespace LucoaBot.Services
 {
     public class CommandHandlerService
     {
-        private readonly IServiceProvider _services;
         private readonly ILogger<CommandHandlerService> _logger;
+        private readonly IServiceProvider _services;
 
         public readonly CommandsNextExtension Commands;
 
@@ -26,7 +26,7 @@ namespace LucoaBot.Services
             _services = services;
             _logger = logger;
 
-            Commands = client.UseCommandsNext(new CommandsNextConfiguration()
+            Commands = client.UseCommandsNext(new CommandsNextConfiguration
             {
                 Services = _services,
                 PrefixResolver = PrefixResolver

@@ -32,20 +32,20 @@ namespace LucoaBot.Commands
         [RequireUserPermissions(Permissions.ManageGuild)]
         public async Task LogAsync(CommandContext context, DiscordChannel channel)
         {
-            var config = await _databaseContext.GuildConfigs.AsQueryable()
+            var config = await _databaseContext.GuildConfigs
                 .Where(e => e.GuildId == context.Guild.Id)
                 .FirstOrDefaultAsync();
 
             if (config == null)
             {
-                config = new GuildConfig()
+                config = new GuildConfig
                 {
                     Prefix = ".",
                     GuildId = context.Guild.Id
                 };
                 await _databaseContext.AddAsync(config);
             }
-            
+
             if (channel == null)
             {
                 config.LogChannel = null;
@@ -102,13 +102,13 @@ namespace LucoaBot.Commands
             }
             else
             {
-                var config = await _databaseContext.GuildConfigs.AsQueryable()
+                var config = await _databaseContext.GuildConfigs
                     .Where(e => e.GuildId == context.Guild.Id)
                     .SingleOrDefaultAsync();
-                
+
                 if (config == null)
                 {
-                    config = new GuildConfig()
+                    config = new GuildConfig
                     {
                         Prefix = ".",
                         GuildId = context.Guild.Id

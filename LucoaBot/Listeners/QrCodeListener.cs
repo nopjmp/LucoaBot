@@ -15,11 +15,11 @@ namespace LucoaBot.Listeners
     {
         private const string DiscordAppRaString = "https://discordapp.com/ra/";
         private const string DiscordRaString = "https://discord.com/ra/";
-        
-        private readonly ILogger<QrCodeListener> _logger;
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly DiscordClient _discordClient;
         private readonly BusQueue _busQueue;
+        private readonly DiscordClient _discordClient;
+        private readonly IHttpClientFactory _httpClientFactory;
+
+        private readonly ILogger<QrCodeListener> _logger;
 
         public QrCodeListener(ILogger<QrCodeListener> logger,
             IHttpClientFactory httpClientFactory, DiscordClient discordClient, BusQueue busQueue)
@@ -35,7 +35,7 @@ namespace LucoaBot.Listeners
         private Task OnMessageReceived(MessageCreateEventArgs args)
         {
             if (args.Author.IsBot || args.Guild == null) return Task.CompletedTask;
-            
+
             var attachments = args.Message.Attachments.Select(a => a.Url);
             // XXX: we might need to support embeds if it gets real bad...
             // var images = context.Message.Embeds
@@ -51,11 +51,10 @@ namespace LucoaBot.Listeners
                     using var bitmap = SKBitmap.Decode(response);
                     if (bitmap == null)
                         return;
-                    
+
                     var reader = new BarcodeReader();
                     var result = reader.Decode(bitmap);
                     if (result != null)
-                    {
                         if (result.Text.StartsWith(DiscordRaString) || result.Text.StartsWith(DiscordAppRaString))
                         {
                             _logger.LogInformation(
@@ -66,7 +65,6 @@ namespace LucoaBot.Listeners
                                 $"sent malicious login url qr code `{result.BarcodeFormat}` `{result.Text}`",
                                 "deleted message");
                         }
-                    }
                 }
                 catch (Exception e)
                 {

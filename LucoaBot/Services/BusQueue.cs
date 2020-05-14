@@ -13,17 +13,17 @@ namespace LucoaBot.Services
 {
     public class BusQueue
     {
-        private readonly DiscordClient _client;
         private readonly IBus _bus;
+        private readonly DiscordClient _client;
+        private Guid _logGuid;
 
         private Guid _userActionGuid;
-        private Guid _logGuid;
 
         public BusQueue(DiscordClient client)
         {
             _client = client;
             _bus = new SimpleBus();
-            
+
             _client.GuildMemberAdded += OnUserJoined;
             _client.GuildMemberRemoved += OnUserLeft;
 
@@ -40,17 +40,23 @@ namespace LucoaBot.Services
         {
             add
             {
-                lock (_userActionEvent) _userActionEvent.Add(value);
+                lock (_userActionEvent)
+                {
+                    _userActionEvent.Add(value);
+                }
             }
             remove
             {
-                lock (_userActionEvent) _userActionEvent.Remove(value);
+                lock (_userActionEvent)
+                {
+                    _userActionEvent.Remove(value);
+                }
             }
         }
 
         private async Task OnUserJoined(GuildMemberAddEventArgs args)
         {
-            await _bus.SendAsync(new UserActionMessage()
+            await _bus.SendAsync(new UserActionMessage
             {
                 UserAction = UserAction.Join,
                 Id = args.Member.Id,
@@ -62,7 +68,7 @@ namespace LucoaBot.Services
 
         private async Task OnUserLeft(GuildMemberRemoveEventArgs args)
         {
-            await _bus.SendAsync(new UserActionMessage()
+            await _bus.SendAsync(new UserActionMessage
             {
                 UserAction = UserAction.Left,
                 Id = args.Member.Id,
@@ -97,11 +103,17 @@ namespace LucoaBot.Services
         {
             add
             {
-                lock (_eventLogEvent) _eventLogEvent.Add(value);
+                lock (_eventLogEvent)
+                {
+                    _eventLogEvent.Add(value);
+                }
             }
             remove
             {
-                lock (_eventLogEvent) _eventLogEvent.Remove(value);
+                lock (_eventLogEvent)
+                {
+                    _eventLogEvent.Remove(value);
+                }
             }
         }
 
@@ -123,7 +135,7 @@ namespace LucoaBot.Services
         {
             if (guild == null) return; // skip message
 
-            await _bus.SendAsync(new EventLogMessage()
+            await _bus.SendAsync(new EventLogMessage
             {
                 Id = user.Id,
                 GuildId = guild.Id,

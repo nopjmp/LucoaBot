@@ -9,9 +9,9 @@ namespace LucoaBot.Listeners
 {
     public class LogListener
     {
+        private readonly BusQueue _busQueue;
         private readonly DiscordClient _client;
         private readonly DatabaseContext _context;
-        private readonly BusQueue _busQueue;
 
         public LogListener(DatabaseContext context, DiscordClient client,
             BusQueue busQueue)

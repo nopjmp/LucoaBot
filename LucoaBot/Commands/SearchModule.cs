@@ -21,7 +21,8 @@ namespace LucoaBot.Commands
 
         [Command("google")]
         [Description("Returns back the first result from Google.")]
-        public async Task GoogleAsync(CommandContext context, [RemainingText] [Description("Text to search+")] string arg)
+        public async Task GoogleAsync(CommandContext context, [RemainingText] [Description("Text to search+")]
+            string arg)
         {
             var query = HttpUtility.UrlEncode(arg);
             var httpClient = _httpClientFactory.CreateClient("noredirect");

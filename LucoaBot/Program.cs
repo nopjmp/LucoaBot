@@ -50,7 +50,7 @@ namespace LucoaBot
 
                     services.AddHostedService<ApplicationLifetimeHostedService>();
 
-                    services.AddSingleton(new DiscordClient(new DiscordConfiguration()
+                    services.AddSingleton(new DiscordClient(new DiscordConfiguration
                     {
                         TokenType = TokenType.Bot,
                         Token = hostContext.Configuration["Token"],

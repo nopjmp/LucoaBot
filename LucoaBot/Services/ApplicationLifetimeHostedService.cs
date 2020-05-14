@@ -9,7 +9,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Prometheus;
 
 namespace LucoaBot.Services
 {
@@ -20,16 +19,16 @@ namespace LucoaBot.Services
         private readonly DatabaseContext _databaseContext;
 
         private readonly DiscordClient _discordClient;
-        private readonly ILogger<ApplicationLifetimeHostedService> _logger;
 
         private readonly ILogger<DiscordClient> _discordLogger;
+        private readonly ILogger<ApplicationLifetimeHostedService> _logger;
 
         // TODO: make this an array of listeners...
         private readonly LogListener _logListener;
+        private readonly QrCodeListener _qrCodeListener;
 
         private readonly StarboardListener _starboardListener;
         private readonly TemperatureListener _temperatureListener;
-        private readonly QrCodeListener _qrCodeListener;
 
         private CancellationTokenSource _userCountTokenSource;
 
@@ -65,7 +64,7 @@ namespace LucoaBot.Services
                 throw new ApplicationException("You need to run the migrations...");
 
             //_metricServer.Start();
-            
+
             _discordClient.DebugLogger.LogMessageReceived += (sender, eventArgs) =>
             {
                 _discordLogger.Log(eventArgs.Level.AsLoggingLevel(), eventArgs.Exception, eventArgs.Message);

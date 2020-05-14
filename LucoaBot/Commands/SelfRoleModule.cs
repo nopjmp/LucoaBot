@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Immutable;
+using System.Linq;
 using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
@@ -32,19 +33,22 @@ namespace LucoaBot.Commands
                     .ToListAsync())
                 .GroupBy(r => r.Category ?? "default")
                 .OrderByDescending(group => group.Key == "default") // sort default to the front
-                .ThenBy(group => group.Key);
+                .ThenBy(group => group.Key)
+                .ToImmutableList();
 
-            var embedBuilder = new DiscordEmbedBuilder()
+            var embedBuilder = new DiscordEmbedBuilder
             {
                 Title = "Self Assignable Roles"
             };
+
+            var inline = !selfRoles.Select(x => x.Count()).Any(c => c > 5);
 
             foreach (var group in selfRoles)
                 embedBuilder.AddField(group.Key,
                     string.Join(" ",
                         group.Select(r => context.Guild.GetRole(r.RoleId)
                             .Mention)),
-                    true);
+                    inline);
 
             if (!embedBuilder.Fields.Any())
                 embedBuilder.Description = "There are no self assignable roles.";
@@ -138,7 +142,7 @@ namespace LucoaBot.Commands
 
                 var removeList = member.Roles.Where(r => roles.Contains(r.Id))
                     .Select(r => context.Guild.GetRole(r.Id))
-                    .Select(r => member.RevokeRoleAsync(r, null))
+                    .Select(r => member.RevokeRoleAsync(r))
                     .ToList();
 
                 await Task.WhenAll(removeList);
@@ -165,10 +169,7 @@ namespace LucoaBot.Commands
                 .Where(x => x.GuildId == context.Guild.Id && x.RoleId == role.Id)
                 .AnyAsync();
 
-            if (!selfRoleExists)
-            {
-                await context.RespondAsync($"**{role.Name}** is not a self-assignable role.");
-            }
+            if (!selfRoleExists) await context.RespondAsync($"**{role.Name}** is not a self-assignable role.");
 
             await member.RevokeRoleAsync(role);
             await context.RespondAsync($"{context.User.Mention} no longer has **{role.Name}**");

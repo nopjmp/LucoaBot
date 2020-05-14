@@ -35,9 +35,8 @@ namespace LucoaBot.Listeners
                 var self = await args.Guild.GetMemberAsync(_client.CurrentUser.Id);
                 permission = (self.PermissionsIn(args.Channel) & Permissions.SendMessages) != 0;
             }
-            
+
             if (permission)
-            {
                 try
                 {
                     var list = new List<string>();
@@ -65,7 +64,6 @@ namespace LucoaBot.Listeners
                 {
                     // Do nothing
                 }
-            }
         }
     }
 }

@@ -1,17 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
-using LucoaBot.Models;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Prometheus;
 
 namespace LucoaBot.Listeners
 {
@@ -90,10 +87,7 @@ namespace LucoaBot.Listeners
                     var starboardChannel = args.Guild.GetChannel(starboardChannelId.Value);
 
                     var starMessage = await FindStarPost(starboardChannel, args.Message.Id.ToString(), false);
-                    if (starMessage != null)
-                    {
-                        await starMessage.DeleteAsync();
-                    }
+                    if (starMessage != null) await starMessage.DeleteAsync();
                 }
             }
             catch (Exception e)
@@ -116,17 +110,12 @@ namespace LucoaBot.Listeners
                 foreach (var message in messages)
                 {
                     // break when message is too old.
-                    if (timeLimited && message.CreationTimestamp <= dateThreshold)
-                    {
-                        return null;
-                    }
+                    if (timeLimited && message.CreationTimestamp <= dateThreshold) return null;
 
                     if (message.Author.Id == _client.CurrentUser.Id && message.Embeds
                         .SelectMany(e => e.Fields ?? EmptyEmbedFields)
                         .Any(f => f.Name == "Message ID" && f.Value == messageId))
-                    {
                         return message;
-                    }
                 }
 
                 messages = await starboardChannel.GetMessagesBeforeAsync(messages.Last().Id);
@@ -151,11 +140,11 @@ namespace LucoaBot.Listeners
                 {
                     var scale = (byte) (255 - Math.Clamp((count - DefaultThreshold) * 25, 0, 255));
 
-                    var embedBuilder = new DiscordEmbedBuilder()
+                    var embedBuilder = new DiscordEmbedBuilder
                     {
                         Title = $"{_emoji} **{count}**",
                         Color = new DiscordColor(255, 255, scale),
-                        Author = new DiscordEmbedBuilder.EmbedAuthor()
+                        Author = new DiscordEmbedBuilder.EmbedAuthor
                         {
                             Name = $"{message.Author.Username}#{message.Author.Discriminator}",
                             IconUrl = message.Author.AvatarUrl
@@ -192,13 +181,9 @@ namespace LucoaBot.Listeners
                             $"[Click here to go to the original message.]({message.JumpLink})");
 
                     if (starboardMessage == null)
-                    {
                         await starboardChannel.SendMessageAsync(embed: embedBuilder.Build());
-                    }
                     else
-                    {
                         await starboardMessage.ModifyAsync(embed: embedBuilder.Build());
-                    }
                 }
             }
         }
@@ -207,7 +192,7 @@ namespace LucoaBot.Listeners
         {
             // ignore DM reactions
             if (guild == null) return;
-            
+
             if (emoji.Equals(_emoji))
             {
                 var starboardChannelId = await GetStarboardChannel(guild.Id);
@@ -230,13 +215,11 @@ namespace LucoaBot.Listeners
                     {
                         DiscordReaction reaction = null;
                         foreach (var e in message.Reactions)
-                        {
                             if (e.Emoji.Equals(_emoji))
                             {
                                 reaction = e;
                                 break;
                             }
-                        }
 
                         reactionCount = reaction?.Count ?? 0;
                     }

@@ -5,7 +5,6 @@ using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using LucoaBot.Models;
 using LucoaBot.Services;
-using Microsoft.AspNetCore.Hosting.Internal;
 using Microsoft.EntityFrameworkCore;
 
 namespace LucoaBot.Commands
@@ -41,7 +40,7 @@ namespace LucoaBot.Commands
 
             var status = "Updated";
 
-            var entry = await _database.CustomCommands.AsQueryable()
+            var entry = await _database.CustomCommands
                 .Where(c => c.Command == commandKey)
                 .FirstOrDefaultAsync();
 
@@ -54,7 +53,7 @@ namespace LucoaBot.Commands
                     GuildId = context.Guild.Id
                 };
 
-                _database.CustomCommands.Add(entry);
+                await _database.CustomCommands.AddAsync(entry);
             }
 
             entry.Response = string.Join(" ", response.Select(s => s.Contains(" ") ? $"\"{s}\"" : s));
@@ -71,7 +70,7 @@ namespace LucoaBot.Commands
         {
             var commandKey = command.ToLowerInvariant();
 
-            var entry = await _database.CustomCommands.AsQueryable()
+            var entry = await _database.CustomCommands
                 .Where(c => c.Command == commandKey)
                 .FirstOrDefaultAsync();
 

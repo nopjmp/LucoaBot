@@ -3,40 +3,24 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Threading.Channels;
+using System.Threading.Tasks;
 
 namespace Paranoid.ChannelBus
 {
     public class SimpleBus : IBus
     {
-        private readonly struct Request
-        {
-            public readonly object Message;
-            public readonly CancellationToken CancellationToken;
-            public readonly TaskCompletionSource<bool> CompletionSource;
+        private readonly Channel<Request> _channel = Channel.CreateUnbounded<Request>();
 
-            public Request(object message, CancellationToken cancellationToken,
-                TaskCompletionSource<bool> completionSource)
-            {
-                Message = message;
-                CancellationToken = cancellationToken;
-                CompletionSource = completionSource;
-            }
-        }
-        
         private readonly ConcurrentQueue<Subscription> _subscriptionRequests = new ConcurrentQueue<Subscription>();
         private readonly ConcurrentQueue<Guid> _unsubscribeRequests = new ConcurrentQueue<Guid>();
-        private readonly Channel<Request> _channel = Channel.CreateUnbounded<Request>();
-        private ChannelWriter<Request> ChannelWriter => _channel.Writer;
-        private ChannelReader<Request> ChannelReader => _channel.Reader;
 
         public SimpleBus()
         {
             Task.Run(async () =>
             {
                 var subscriptions = new List<Subscription>();
-                
+
                 while (await ChannelReader.WaitToReadAsync())
                 {
                     while (_unsubscribeRequests.TryDequeue(out var subscriptionId))
@@ -45,11 +29,8 @@ namespace Paranoid.ChannelBus
                         subscriptions.RemoveAll(s => s.Guid == guid);
                     }
 
-                    while (_subscriptionRequests.TryDequeue(out var subscription))
-                    {
-                        subscriptions.Add(subscription);
-                    }
-                    
+                    while (_subscriptionRequests.TryDequeue(out var subscription)) subscriptions.Add(subscription);
+
                     while (ChannelReader.TryRead(out var request))
                     {
                         var result = true;
@@ -67,16 +48,21 @@ namespace Paranoid.ChannelBus
                             }
                             catch (Exception e)
                             {
-                                Trace.TraceError("Exception while handling subscription {0}; Message: {1}", subscription.Guid, e.Message);
+                                Trace.TraceError("Exception while handling subscription {0}; Message: {1}",
+                                    subscription.Guid, e.Message);
                                 result = false;
                             }
                         }
+
                         request.CompletionSource.SetResult(result);
                     }
                 }
             });
         }
-        
+
+        private ChannelWriter<Request> ChannelWriter => _channel.Writer;
+        private ChannelReader<Request> ChannelReader => _channel.Reader;
+
         public Task SendAsync<T>(T message) where T : struct
         {
             return SendAsync(message, CancellationToken.None);
@@ -109,6 +95,21 @@ namespace Paranoid.ChannelBus
         public void Unsubscribe(Guid subscriptionId)
         {
             _unsubscribeRequests.Enqueue(subscriptionId);
+        }
+
+        private readonly struct Request
+        {
+            public readonly object Message;
+            public readonly CancellationToken CancellationToken;
+            public readonly TaskCompletionSource<bool> CompletionSource;
+
+            public Request(object message, CancellationToken cancellationToken,
+                TaskCompletionSource<bool> completionSource)
+            {
+                Message = message;
+                CancellationToken = cancellationToken;
+                CompletionSource = completionSource;
+            }
         }
     }
 }

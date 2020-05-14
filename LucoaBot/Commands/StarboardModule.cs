@@ -28,20 +28,20 @@ namespace LucoaBot.Commands
         [Description("Sets up the starboard")]
         public async Task SetStarboardAsync(CommandContext context, DiscordChannel channel = null)
         {
-            var config = await _databaseContext.GuildConfigs.AsQueryable()
+            var config = await _databaseContext.GuildConfigs
                 .Where(e => e.GuildId == context.Guild.Id)
                 .FirstOrDefaultAsync();
 
             if (config == null)
             {
-                config = new GuildConfig()
+                config = new GuildConfig
                 {
                     Prefix = ".",
                     GuildId = context.Guild.Id
                 };
                 await _databaseContext.AddAsync(config);
             }
-            
+
             if (channel == null)
             {
                 config.StarBoardChannel = null;
