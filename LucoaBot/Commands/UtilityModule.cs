@@ -179,9 +179,9 @@ namespace LucoaBot.Commands
 
             embedBuilder.AddField("Owner", $"{owner.Username}#{owner.Discriminator}")
                 .AddField("Uptime", uptime.ToHumanTimeString(2))
-                .AddField("Bot ID", context.Client.CurrentUser.Id)
+                .AddField("Bot ID", context.Client.CurrentUser.Id.ToString())
                 .AddField("Ping", $"{context.Client.Ping}ms")
-                .AddField("Guilds", context.Client.Guilds.Count)
+                .AddField("Guilds", context.Client.Guilds.Count.ToString())
                 .AddField("Total Members",
                     context.Client.Guilds.Aggregate(0, (a, g) => a + g.Value.MemberCount).ToString());
 

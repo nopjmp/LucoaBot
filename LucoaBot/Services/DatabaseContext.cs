@@ -1,19 +1,30 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using LucoaBot.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace LucoaBot.Services
 {
     [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
     public class DatabaseContext : DbContext
     {
-        public DatabaseContext(DbContextOptions options) : base(options)
+        private readonly ILoggerFactory _loggerFactory;
+
+        public DatabaseContext(DbContextOptions options, ILoggerFactory loggerFactory) : base(options)
         {
+            _loggerFactory = loggerFactory;
         }
 
         public DbSet<CustomCommand> CustomCommands { get; set; }
         public DbSet<GuildConfig> GuildConfigs { get; set; }
         public DbSet<SelfRole> SelfRoles { get; set; }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            base.OnConfiguring(optionsBuilder);
+
+            optionsBuilder.UseLoggerFactory(_loggerFactory);
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
