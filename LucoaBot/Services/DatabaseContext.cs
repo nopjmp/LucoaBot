@@ -2,6 +2,7 @@
 using LucoaBot.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace LucoaBot.Services
 {
@@ -12,7 +13,14 @@ namespace LucoaBot.Services
 
         public DatabaseContext(DbContextOptions options, ILoggerFactory loggerFactory) : base(options)
         {
-            _loggerFactory = loggerFactory;
+            _loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder
+                    .AddFilter((category, level) =>
+                        (category == DbLoggerCategory.Database.Command.Name || category == DbLoggerCategory.Infrastructure.Name )
+                        && level == LogLevel.Information)
+                    .AddSerilog();
+            });
         }
 
         public DbSet<CustomCommand> CustomCommands { get; set; }
