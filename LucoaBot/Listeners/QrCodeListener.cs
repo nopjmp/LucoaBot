@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Net.Http;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.EventArgs;
@@ -32,15 +33,22 @@ namespace LucoaBot.Listeners
             _discordClient.MessageCreated += OnMessageReceived;
         }
 
+        // This is more than what discord supports, but just to be careful.
+        private static readonly string[] _validExtensions = {"jpg", "jpeg", "bmp", "png", "webp"};
+        private static bool IsImageExtension(string filename)
+        {
+            var ext = Regex.Match(filename, @"\.[A-Za-z0-9]+$").Value;
+            return _validExtensions.Contains(ext.ToLower());
+        }
+        
         private Task OnMessageReceived(MessageCreateEventArgs args)
         {
             if (args.Author.IsBot || args.Guild == null) return Task.CompletedTask;
 
-            var attachments = args.Message.Attachments.Select(a => a.Url);
-            // XXX: we might need to support embeds if it gets real bad...
-            // var images = context.Message.Embeds
-            //     .Where(e => e.Image != null)
-            //     .Select(e => e.Image?.Url)
+            var attachments = args.Message.Attachments
+                .Where(a => IsImageExtension(a.FileName))
+                .Select(a => a.Url);
+            
             var tasks = attachments.Select(async url =>
             {
                 var httpClient = _httpClientFactory.CreateClient();
