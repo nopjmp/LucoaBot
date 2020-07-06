@@ -69,6 +69,8 @@ namespace LucoaBot.Commands
                 Description = context.Guild.Name,
                 Thumbnail = new DiscordEmbedBuilder.EmbedThumbnail
                 {
+                    Width = 0,
+                    Height = 0,
                     Url = context.Guild.IconUrl
                 }
             };
@@ -122,6 +124,9 @@ namespace LucoaBot.Commands
                 },
                 Thumbnail = new DiscordEmbedBuilder.EmbedThumbnail
                 {
+                    Width = 0,
+                    Height = 0,
+                    Url = user.AvatarUrl
                 },
                 Description = user.Mention,
                 Timestamp = DateTimeOffset.Now,
