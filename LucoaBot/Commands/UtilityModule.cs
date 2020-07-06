@@ -67,7 +67,10 @@ namespace LucoaBot.Commands
                 },
                 Color = new DiscordColor(114, 137, 218),
                 Description = context.Guild.Name,
-                ThumbnailUrl = context.Guild.IconUrl
+                Thumbnail = new DiscordEmbedBuilder.EmbedThumbnail
+                {
+                    Url = context.Guild.IconUrl
+                }
             };
 
             var fields = new Dictionary<string, string>
@@ -117,7 +120,9 @@ namespace LucoaBot.Commands
                     Name = $"{user.Username}#{user.Discriminator}",
                     IconUrl = user.AvatarUrl
                 },
-                ThumbnailUrl = user.AvatarUrl,
+                Thumbnail = new DiscordEmbedBuilder.EmbedThumbnail
+                {
+                },
                 Description = user.Mention,
                 Timestamp = DateTimeOffset.Now,
                 Footer = new DiscordEmbedBuilder.EmbedFooter
