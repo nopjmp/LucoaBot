@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DSharpPlus;
@@ -58,9 +59,15 @@ namespace LucoaBot.Services
 
         private async Task CommandsOnCommandErrored(CommandErrorEventArgs args)
         {
-            switch (args.Exception)
+            var exs = new List<Exception>();
+            if (args.Exception is AggregateException ae)
+                exs.AddRange(ae.InnerExceptions);
+            else
+                exs.Add(args.Exception);
+
+            foreach (var ex in exs)
             {
-                case CommandNotFoundException e:
+                if (ex is CommandNotFoundException e && args.Command == null)
                 {
                     using var scope = _services.CreateScope();
                     var context = scope.ServiceProvider.GetService<DatabaseContext>();
@@ -81,9 +88,10 @@ namespace LucoaBot.Services
 
                     break;
                 }
-                default:
-                    _logger.Log(LogLevel.Warning, args.Exception, "Exception occured while processing command.");
-                    break;
+
+                _logger.Log(LogLevel.Warning, ex,
+                    "Exception occured while processing command ({0}) from {1} with message \"{2}\".\n",
+                    args.Command.QualifiedName, args.Context.User.ToString(), args.Context.Message.Content);
             }
         }
     }
