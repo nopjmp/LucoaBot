@@ -1,5 +1,7 @@
-﻿using System.Collections.Immutable;
+﻿using System;
+using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
@@ -112,10 +114,19 @@ namespace LucoaBot.Commands
         [Command("iam")]
         [Aliases("r")]
         [Description("Assigns the request role to the caller, if allowed")]
-        public async Task IamAsync(CommandContext context, DiscordRole role)
+        public async Task IamAsync(CommandContext context, params string[] roleName)
         {
-            var member = context.Member;
+            var roleNameString = string.Join(' ', roleName);
+            var role = context.Guild.Roles.Values.FirstOrDefault(xr =>
+                xr.Name.Equals(roleNameString, StringComparison.InvariantCultureIgnoreCase));
 
+            if (role == null)
+            {
+                await context.RespondAsync($"**{roleNameString}** is not a valid role.");
+                return;
+            }
+
+            var member = context.Member;
             if (member.Roles.Contains(role))
             {
                 await context.RespondAsync($"{context.User.Mention}... You already have **{role.Name}**.");
@@ -155,10 +166,19 @@ namespace LucoaBot.Commands
         [Command("iamnot")]
         [Aliases("iamn", "nr")]
         [Description("Removes the requested role from the caller, if allowed")]
-        public async Task IamNotAsync(CommandContext context, DiscordRole role)
+        public async Task IamNotAsync(CommandContext context, params string[] roleName)
         {
-            var member = context.Member;
+            var roleNameString = string.Join(' ', roleName);
+            var role = context.Guild.Roles.Values.FirstOrDefault(xr =>
+                xr.Name.Equals(roleNameString, StringComparison.InvariantCultureIgnoreCase));
 
+            if (role == null)
+            {
+                await context.RespondAsync($"**{roleNameString}** is not a valid role.");
+                return;
+            }
+            
+            var member = context.Member;
             if (!member.Roles.Contains(role))
             {
                 await context.RespondAsync($"{context.User.Mention}... You do not have **{role.Name}**.");
