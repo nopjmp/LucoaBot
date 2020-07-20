@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
@@ -177,7 +176,7 @@ namespace LucoaBot.Commands
                 await context.RespondAsync($"**{roleNameString}** is not a valid role.");
                 return;
             }
-            
+
             var member = context.Member;
             if (!member.Roles.Contains(role))
             {

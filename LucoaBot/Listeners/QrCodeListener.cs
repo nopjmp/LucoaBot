@@ -16,6 +16,9 @@ namespace LucoaBot.Listeners
     {
         private const string DiscordAppRaString = "https://discordapp.com/ra/";
         private const string DiscordRaString = "https://discord.com/ra/";
+
+        // This is more than what discord supports, but just to be careful.
+        private static readonly string[] _validExtensions = {"jpg", "jpeg", "bmp", "png", "webp"};
         private readonly BusQueue _busQueue;
         private readonly DiscordClient _discordClient;
         private readonly IHttpClientFactory _httpClientFactory;
@@ -37,14 +40,12 @@ namespace LucoaBot.Listeners
             };
         }
 
-        // This is more than what discord supports, but just to be careful.
-        private static readonly string[] _validExtensions = {"jpg", "jpeg", "bmp", "png", "webp"};
         private static bool IsImageExtension(string filename)
         {
             var ext = Regex.Match(filename, @"\.[A-Za-z0-9]+$").Value;
             return _validExtensions.Contains(ext.ToLower());
         }
-        
+
         private async Task OnMessageReceived(MessageCreateEventArgs args)
         {
             if (args.Author.IsBot || args.Guild == null) return;
@@ -52,7 +53,7 @@ namespace LucoaBot.Listeners
             var attachments = args.Message.Attachments
                 .Where(a => IsImageExtension(a.FileName))
                 .Select(a => a.Url);
-            
+
             var tasks = attachments.Select(async url =>
             {
                 var httpClient = _httpClientFactory.CreateClient();

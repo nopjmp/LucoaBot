@@ -17,7 +17,8 @@ namespace LucoaBot.Services
             {
                 builder
                     .AddFilter((category, level) =>
-                        (category == DbLoggerCategory.Database.Command.Name || category == DbLoggerCategory.Infrastructure.Name )
+                        (category == DbLoggerCategory.Database.Command.Name ||
+                         category == DbLoggerCategory.Infrastructure.Name)
                         && level == LogLevel.Information)
                     .AddSerilog();
             });

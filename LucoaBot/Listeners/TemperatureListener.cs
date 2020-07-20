@@ -41,7 +41,6 @@ namespace LucoaBot.Listeners
             }
 
             if (permission)
-            {
                 try
                 {
                     var list = new List<string>();
@@ -69,7 +68,6 @@ namespace LucoaBot.Listeners
                 {
                     // Do nothing
                 }
-            }
         }
     }
 }
