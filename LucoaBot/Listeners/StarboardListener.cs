@@ -46,22 +46,26 @@ namespace LucoaBot.Listeners
 
         private Task ClientOnMessageReactionRemovedEmoji(MessageReactionRemoveEmojiEventArgs args)
         {
-            return OnReactionEvent(args.Emoji, true, args.Guild, args.Message);
+            Task.Run(async () => await OnReactionEvent(args.Emoji, true, args.Guild, args.Message));
+            return Task.CompletedTask;
         }
 
         private Task ClientOnMessageReactionAdded(MessageReactionAddEventArgs args)
         {
-            return OnReactionEvent(args.Emoji, false, args.Guild, args.Message);
+            Task.Run(async () => await OnReactionEvent(args.Emoji, false, args.Guild, args.Message));
+            return Task.CompletedTask;
         }
 
         private Task ClientOnMessageReactionRemoved(MessageReactionRemoveEventArgs args)
         {
-            return OnReactionEvent(args.Emoji, false, args.Guild, args.Message);
+            Task.Run(async () => await OnReactionEvent(args.Emoji, false, args.Guild, args.Message));
+            return Task.CompletedTask;
         }
 
         private Task ClientOnMessageReactionsCleared(MessageReactionsClearEventArgs args)
         {
-            return OnReactionEvent(_emoji, true, args.Guild, args.Message);
+            Task.Run(async () => await OnReactionEvent(_emoji, true, args.Guild, args.Message));
+            return Task.CompletedTask;
         }
 
 

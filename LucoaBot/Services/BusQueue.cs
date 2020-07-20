@@ -54,28 +54,31 @@ namespace LucoaBot.Services
             }
         }
 
-        private async Task OnUserJoined(GuildMemberAddEventArgs args)
+        private Task OnUserJoined(GuildMemberAddEventArgs args)
         {
-            await _bus.SendAsync(new UserActionMessage
+            Task.Run(async () => await _bus.SendAsync(new UserActionMessage
             {
                 UserAction = UserAction.Join,
                 Id = args.Member.Id,
                 GuildId = args.Guild.Id,
                 Username = args.Member.Username,
                 Discriminator = args.Member.Discriminator
-            });
+            }));
+            return Task.CompletedTask;
         }
 
-        private async Task OnUserLeft(GuildMemberRemoveEventArgs args)
+        private Task OnUserLeft(GuildMemberRemoveEventArgs args)
         {
-            await _bus.SendAsync(new UserActionMessage
+            Task.Run(async () => await _bus.SendAsync(new UserActionMessage
             {
                 UserAction = UserAction.Left,
                 Id = args.Member.Id,
                 GuildId = args.Guild.Id,
                 Username = args.Member.Username,
                 Discriminator = args.Member.Discriminator
-            });
+            }));
+
+            return Task.CompletedTask;
         }
 
         private async Task OnUserAction(UserActionMessage message, CancellationToken cancellationToken)

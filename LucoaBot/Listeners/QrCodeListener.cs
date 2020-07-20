@@ -80,7 +80,9 @@ namespace LucoaBot.Listeners
                 }
             });
 
-            return Task.WhenAll(tasks);
+            Task.Run(async () => await Task.WhenAll(tasks));
+
+            return Task.CompletedTask;
         }
     }
 }
