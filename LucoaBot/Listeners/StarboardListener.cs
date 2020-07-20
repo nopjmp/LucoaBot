@@ -37,35 +37,51 @@ namespace LucoaBot.Listeners
 
         public void Initialize()
         {
-            _client.MessageDeleted += Client_MessageDeleted;
-            _client.MessageReactionAdded += ClientOnMessageReactionAdded;
-            _client.MessageReactionRemoved += ClientOnMessageReactionRemoved;
-            _client.MessageReactionsCleared += ClientOnMessageReactionsCleared;
-            _client.MessageReactionRemovedEmoji += ClientOnMessageReactionRemovedEmoji;
+            _client.MessageDeleted += e =>
+            {
+                Client_MessageDeleted(e).Forget();
+                return Task.CompletedTask;
+            };
+            _client.MessageReactionAdded += e =>
+            {
+                ClientOnMessageReactionAdded(e).Forget();
+                return Task.CompletedTask;
+            };
+            _client.MessageReactionRemoved += e =>
+            {
+                ClientOnMessageReactionRemoved(e).Forget();
+                return Task.CompletedTask;
+            };
+            _client.MessageReactionsCleared += e =>
+            {
+                ClientOnMessageReactionsCleared(e).Forget();
+                return Task.CompletedTask;
+            };
+            _client.MessageReactionRemovedEmoji += e =>
+            {
+                ClientOnMessageReactionRemovedEmoji(e).Forget();
+                return Task.CompletedTask;
+            };
         }
 
         private Task ClientOnMessageReactionRemovedEmoji(MessageReactionRemoveEmojiEventArgs args)
         {
-            Task.Run(async () => await OnReactionEvent(args.Emoji, true, args.Guild, args.Message));
-            return Task.CompletedTask;
+            return OnReactionEvent(args.Emoji, true, args.Guild, args.Message);
         }
 
         private Task ClientOnMessageReactionAdded(MessageReactionAddEventArgs args)
         {
-            Task.Run(async () => await OnReactionEvent(args.Emoji, false, args.Guild, args.Message));
-            return Task.CompletedTask;
+            return OnReactionEvent(args.Emoji, false, args.Guild, args.Message);
         }
 
         private Task ClientOnMessageReactionRemoved(MessageReactionRemoveEventArgs args)
         {
-            Task.Run(async () => await OnReactionEvent(args.Emoji, false, args.Guild, args.Message));
-            return Task.CompletedTask;
+            return OnReactionEvent(args.Emoji, false, args.Guild, args.Message);
         }
 
         private Task ClientOnMessageReactionsCleared(MessageReactionsClearEventArgs args)
         {
-            Task.Run(async () => await OnReactionEvent(_emoji, true, args.Guild, args.Message));
-            return Task.CompletedTask;
+            return OnReactionEvent(_emoji, true, args.Guild, args.Message);
         }
 
 

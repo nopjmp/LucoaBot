@@ -9,34 +9,31 @@ namespace LucoaBot
     /// </summary>
     public static class TaskExtensions
     {
-        /// <summary>
-        ///     Safely execute the Task without waiting for it to complete before moving to the next line of code; commonly known
-        ///     as "Fire And Forget". Inspired by John Thiriet's blog post, "Removing Async Void":
-        ///     https://johnthiriet.com/removing-async-void/.
-        /// </summary>
-        /// <param name="task">Task.</param>
-        /// <param name="continueOnCapturedContext">
-        ///     If set to <c>true</c> continue on captured context; this will ensure that the
-        ///     Synchronization Context returns to the calling thread. If set to <c>false</c> continue on a different context; this
-        ///     will allow the Synchronization Context to continue on a different thread
-        /// </param>
-        /// <param name="onException">
-        ///     If an exception is thrown in the Task, <c>onException</c> will execute. If onException is
-        ///     null, the exception will be re-thrown
-        /// </param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#pragma warning disable RECS0165 // Asynchronous methods should return a Task instead of void
-        public static async void SafeFireAndForget(this Task task,
-            bool continueOnCapturedContext = true, Action<Exception> onException = null)
-#pragma warning restore RECS0165 // Asynchronous methods should return a Task instead of void
+        public static void Forget(this Task task)
         {
-            try
+            // note: this code is inspired by a tweet from Ben Adams: https://twitter.com/ben_a_adams/status/1045060828700037125
+            // Only care about tasks that may fault (not completed) or are faulted,
+            // so fast-path for SuccessfullyCompleted and Canceled tasks.
+            if (!task.IsCompleted || task.IsFaulted)
             {
-                await task.ConfigureAwait(continueOnCapturedContext);
+                // use "_" (Discard operation) to remove the warning IDE0058: Because this call is not awaited, execution of the current method continues before the call is completed
+                // https://docs.microsoft.com/en-us/dotnet/csharp/discards#a-standalone-discard
+                _ = ForgetAwaited(task);
             }
-            catch (Exception ex) when (onException != null)
+
+            // Allocate the async/await state machine only when needed for performance reason.
+            // More info about the state machine: https://blogs.msdn.microsoft.com/seteplia/2017/11/30/dissecting-the-async-methods-in-c/
+            static async Task ForgetAwaited(Task task)
             {
-                onException(ex);
+                try
+                {
+                    // No need to resume on the original SynchronizationContext, so use ConfigureAwait(false)
+                    await task.ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Nothing to do here
+                }
             }
         }
     }

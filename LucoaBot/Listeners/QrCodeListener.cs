@@ -30,7 +30,11 @@ namespace LucoaBot.Listeners
             _discordClient = discordClient;
             _busQueue = busQueue;
 
-            _discordClient.MessageCreated += OnMessageReceived;
+            _discordClient.MessageCreated += e =>
+            {
+                OnMessageReceived(e).Forget();
+                return Task.CompletedTask;
+            };
         }
 
         // This is more than what discord supports, but just to be careful.
@@ -41,9 +45,9 @@ namespace LucoaBot.Listeners
             return _validExtensions.Contains(ext.ToLower());
         }
         
-        private Task OnMessageReceived(MessageCreateEventArgs args)
+        private async Task OnMessageReceived(MessageCreateEventArgs args)
         {
-            if (args.Author.IsBot || args.Guild == null) return Task.CompletedTask;
+            if (args.Author.IsBot || args.Guild == null) return;
 
             var attachments = args.Message.Attachments
                 .Where(a => IsImageExtension(a.FileName))
@@ -80,9 +84,7 @@ namespace LucoaBot.Listeners
                 }
             });
 
-            Task.Run(async () => await Task.WhenAll(tasks));
-
-            return Task.CompletedTask;
+            await Task.WhenAll(tasks);
         }
     }
 }

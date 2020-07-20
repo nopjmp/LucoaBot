@@ -24,8 +24,16 @@ namespace LucoaBot.Services
             _client = client;
             _bus = new SimpleBus();
 
-            _client.GuildMemberAdded += OnUserJoined;
-            _client.GuildMemberRemoved += OnUserLeft;
+            _client.GuildMemberAdded += e =>
+            {
+                OnUserJoined(e).Forget();
+                return Task.CompletedTask;
+            };
+            _client.GuildMemberRemoved += e =>
+            {
+                OnUserLeft(e).Forget();
+                return Task.CompletedTask;
+            };
 
             _userActionGuid = _bus.Subscribe<UserActionMessage>(OnUserAction);
             _logGuid = _bus.Subscribe<EventLogMessage>(OnLog);
@@ -54,31 +62,28 @@ namespace LucoaBot.Services
             }
         }
 
-        private Task OnUserJoined(GuildMemberAddEventArgs args)
+        private async Task OnUserJoined(GuildMemberAddEventArgs args)
         {
-            Task.Run(async () => await _bus.SendAsync(new UserActionMessage
+            await _bus.SendAsync(new UserActionMessage
             {
                 UserAction = UserAction.Join,
                 Id = args.Member.Id,
                 GuildId = args.Guild.Id,
                 Username = args.Member.Username,
                 Discriminator = args.Member.Discriminator
-            }));
-            return Task.CompletedTask;
+            });
         }
 
-        private Task OnUserLeft(GuildMemberRemoveEventArgs args)
+        private async Task OnUserLeft(GuildMemberRemoveEventArgs args)
         {
-            Task.Run(async () => await _bus.SendAsync(new UserActionMessage
+            await _bus.SendAsync(new UserActionMessage
             {
                 UserAction = UserAction.Left,
                 Id = args.Member.Id,
                 GuildId = args.Guild.Id,
                 Username = args.Member.Username,
                 Discriminator = args.Member.Discriminator
-            }));
-
-            return Task.CompletedTask;
+            });
         }
 
         private async Task OnUserAction(UserActionMessage message, CancellationToken cancellationToken)
