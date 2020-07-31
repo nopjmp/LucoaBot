@@ -126,40 +126,42 @@ namespace LucoaBot.Commands
             }
 
             var member = context.Member;
-            if (member.Roles.Contains(role))
+            if (!member.Roles.Contains(role))
+            {
+                var selfRoleEntry = await _databaseContext.SelfRoles.AsNoTracking()
+                    .Where(x => x.GuildId == context.Guild.Id && x.RoleId == role.Id)
+                    .FirstOrDefaultAsync();
+
+                if (selfRoleEntry != null)
+                {
+                    if (selfRoleEntry.Category != null && selfRoleEntry.Category != "default")
+                    {
+                        var roles = await _databaseContext.SelfRoles.AsNoTracking()
+                            .Where(r => r.GuildId == context.Guild.Id && r.Category == selfRoleEntry.Category)
+                            .Select(r => r.RoleId)
+                            .ToListAsync();
+
+                        var removeList = member.Roles.Where(r => roles.Contains(r.Id))
+                            .Select(r => context.Guild.GetRole(r.Id))
+                            .Select(r => member.RevokeRoleAsync(r))
+                            .ToList();
+
+                        await Task.WhenAll(removeList);
+                    }
+
+                    // TODO: use ReplaceRolesAsync
+                    await member.GrantRoleAsync(role);
+                    await context.RespondAsync($"{context.User.Mention} now has the role **{role.Name}**");
+                }
+                else
+                {
+                    await context.RespondAsync($"**{role.Name}** is not a self-assignable role.");
+                }
+            }
+            else
             {
                 await context.RespondAsync($"{context.User.Mention}... You already have **{role.Name}**.");
-                return;
             }
-
-            var selfRoleEntry = await _databaseContext.SelfRoles.AsNoTracking()
-                .Where(x => x.GuildId == context.Guild.Id && x.RoleId == role.Id)
-                .FirstOrDefaultAsync();
-
-            if (selfRoleEntry == null)
-            {
-                await context.RespondAsync($"**{role.Name}** is not a self-assignable role.");
-                return;
-            }
-
-            // TODO: use ReplaceRolesAsync
-            if (selfRoleEntry.Category != null && selfRoleEntry.Category != "default")
-            {
-                var roles = await _databaseContext.SelfRoles.AsNoTracking()
-                    .Where(r => r.GuildId == context.Guild.Id && r.Category == selfRoleEntry.Category)
-                    .Select(r => r.RoleId)
-                    .ToListAsync();
-
-                var removeList = member.Roles.Where(r => roles.Contains(r.Id))
-                    .Select(r => context.Guild.GetRole(r.Id))
-                    .Select(r => member.RevokeRoleAsync(r))
-                    .ToList();
-
-                await Task.WhenAll(removeList);
-            }
-
-            await member.GrantRoleAsync(role);
-            await context.RespondAsync($"{context.User.Mention} now has the role **{role.Name}**");
         }
 
         [Command("iamnot")]
@@ -178,20 +180,26 @@ namespace LucoaBot.Commands
             }
 
             var member = context.Member;
-            if (!member.Roles.Contains(role))
+            if (member.Roles.Contains(role))
+            {
+                var selfRoleExists = await _databaseContext.SelfRoles.AsNoTracking()
+                    .Where(x => x.GuildId == context.Guild.Id && x.RoleId == role.Id)
+                    .AnyAsync();
+
+                if (selfRoleExists)
+                {
+                    await member.RevokeRoleAsync(role);
+                    await context.RespondAsync($"{context.User.Mention} no longer has **{role.Name}**");
+                }
+                else
+                {
+                    await context.RespondAsync($"**{role.Name}** is not a self-assignable role.");
+                }
+            }
+            else
             {
                 await context.RespondAsync($"{context.User.Mention}... You do not have **{role.Name}**.");
-                return;
             }
-
-            var selfRoleExists = await _databaseContext.SelfRoles.AsNoTracking()
-                .Where(x => x.GuildId == context.Guild.Id && x.RoleId == role.Id)
-                .AnyAsync();
-
-            if (!selfRoleExists) await context.RespondAsync($"**{role.Name}** is not a self-assignable role.");
-
-            await member.RevokeRoleAsync(role);
-            await context.RespondAsync($"{context.User.Mention} no longer has **{role.Name}**");
         }
     }
 }
