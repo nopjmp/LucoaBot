@@ -41,9 +41,9 @@ namespace LucoaBot.Services
             Commands.RegisterCommands<StarboardModule>();
             Commands.RegisterCommands<UtilityModule>();
 
-            Commands.CommandErrored += (args) => 
+            Commands.CommandErrored += (_, e) => 
             {
-                CommandsOnCommandErrored(args).Forget();
+                CommandsOnCommandErrored(e).Forget();
                 return Task.CompletedTask;
             };
         }
@@ -62,7 +62,7 @@ namespace LucoaBot.Services
             return msg.GetStringPrefixLength(guildConfigPrefix ?? prefix);
         }
 
-        private async Task CommandsOnCommandErrored(CommandsNextExtension _, CommandErrorEventArgs args)
+        private async Task CommandsOnCommandErrored(CommandErrorEventArgs args)
         {
             var exs = new List<Exception>();
             if (args.Exception is AggregateException ae)
