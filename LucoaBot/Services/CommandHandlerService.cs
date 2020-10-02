@@ -57,7 +57,7 @@ namespace LucoaBot.Services
             return msg.GetStringPrefixLength(guildConfigPrefix ?? prefix);
         }
 
-        private async Task CommandsOnCommandErrored(CommandErrorEventArgs args)
+        private async Task CommandsOnCommandErrored(CommandsNextExtension _, CommandErrorEventArgs args)
         {
             var exs = new List<Exception>();
             if (args.Exception is AggregateException ae)

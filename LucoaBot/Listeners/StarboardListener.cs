@@ -37,27 +37,27 @@ namespace LucoaBot.Listeners
 
         public void Initialize()
         {
-            _client.MessageDeleted += e =>
+            _client.MessageDeleted += (_, e) =>
             {
                 Client_MessageDeleted(e).Forget();
                 return Task.CompletedTask;
             };
-            _client.MessageReactionAdded += e =>
+            _client.MessageReactionAdded += (_, e) =>
             {
                 ClientOnMessageReactionAdded(e).Forget();
                 return Task.CompletedTask;
             };
-            _client.MessageReactionRemoved += e =>
+            _client.MessageReactionRemoved += (_, e) =>
             {
                 ClientOnMessageReactionRemoved(e).Forget();
                 return Task.CompletedTask;
             };
-            _client.MessageReactionsCleared += e =>
+            _client.MessageReactionsCleared += (_, e) =>
             {
                 ClientOnMessageReactionsCleared(e).Forget();
                 return Task.CompletedTask;
             };
-            _client.MessageReactionRemovedEmoji += e =>
+            _client.MessageReactionRemovedEmoji += (_, e) =>
             {
                 ClientOnMessageReactionRemovedEmoji(e).Forget();
                 return Task.CompletedTask;

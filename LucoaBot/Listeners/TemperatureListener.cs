@@ -22,7 +22,7 @@ namespace LucoaBot.Listeners
         {
             _client = client;
 
-            _client.MessageCreated += e =>
+            _client.MessageCreated += (_, e) =>
             {
                 TemperatureListenerAsync(e).Forget();
                 return Task.CompletedTask;

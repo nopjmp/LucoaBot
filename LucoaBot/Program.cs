@@ -10,7 +10,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using LogLevel = DSharpPlus.LogLevel;
 
 namespace LucoaBot
 {
@@ -54,11 +53,7 @@ namespace LucoaBot
                     {
                         TokenType = TokenType.Bot,
                         Token = hostContext.Configuration["Token"],
-                        AutoReconnect = true,
-#if DEBUG
-                        LogLevel = LogLevel.Debug,
-#endif
-                        UseInternalLogHandler = false
+                        AutoReconnect = true
                     }));
 
                     services.AddSingleton<CommandHandlerService>();

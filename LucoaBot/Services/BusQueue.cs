@@ -24,12 +24,12 @@ namespace LucoaBot.Services
             _client = client;
             _bus = new SimpleBus();
 
-            _client.GuildMemberAdded += e =>
+            _client.GuildMemberAdded += (_, e) =>
             {
                 OnUserJoined(e).Forget();
                 return Task.CompletedTask;
             };
-            _client.GuildMemberRemoved += e =>
+            _client.GuildMemberRemoved += (_, e) =>
             {
                 OnUserLeft(e).Forget();
                 return Task.CompletedTask;

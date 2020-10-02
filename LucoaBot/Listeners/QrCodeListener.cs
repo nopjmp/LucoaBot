@@ -33,7 +33,7 @@ namespace LucoaBot.Listeners
             _discordClient = discordClient;
             _busQueue = busQueue;
 
-            _discordClient.MessageCreated += e =>
+            _discordClient.MessageCreated += (_, e) =>
             {
                 OnMessageReceived(e).Forget();
                 return Task.CompletedTask;

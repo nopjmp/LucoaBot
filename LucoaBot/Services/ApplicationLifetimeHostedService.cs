@@ -65,12 +65,12 @@ namespace LucoaBot.Services
 
             //_metricServer.Start();
 
-            _discordClient.DebugLogger.LogMessageReceived += (sender, eventArgs) =>
-            {
-                _discordLogger.Log(eventArgs.Level.AsLoggingLevel(), eventArgs.Exception, eventArgs.Message);
-            };
+            // _discordClient.Logger.LogMessageReceived += (sender, eventArgs) =>
+            // {
+            //     _discordLogger.Log(eventArgs.Level.AsLoggingLevel(), eventArgs.Exception, eventArgs.Message);
+            // };
 
-            _discordClient.SocketOpened += () =>
+            _discordClient.SocketOpened += (_, __) =>
             {
                 // Setup Cancellation for when we disconnect.
                 _userCountTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -97,7 +97,7 @@ namespace LucoaBot.Services
                 return Task.CompletedTask;
             };
 
-            _discordClient.SocketClosed += _ =>
+            _discordClient.SocketClosed += (_, __) =>
             {
                 if (_userCountTokenSource != null)
                 {
