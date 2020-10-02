@@ -30,7 +30,8 @@ namespace LucoaBot.Services
             Commands = client.UseCommandsNext(new CommandsNextConfiguration
             {
                 Services = _services,
-                PrefixResolver = PrefixResolver
+                PrefixResolver = PrefixResolver,
+                EnableMentionPrefix = false,
             });
 
             Commands.RegisterCommands<AdminModule>();
@@ -40,7 +41,11 @@ namespace LucoaBot.Services
             Commands.RegisterCommands<StarboardModule>();
             Commands.RegisterCommands<UtilityModule>();
 
-            Commands.CommandErrored += CommandsOnCommandErrored;
+            Commands.CommandErrored += (args) => 
+            {
+                CommandsOnCommandErrored(args).Forget();
+                return Task.CompletedTask;
+            };
         }
 
         private async Task<int> PrefixResolver(DiscordMessage msg)
