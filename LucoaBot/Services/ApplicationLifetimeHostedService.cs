@@ -61,7 +61,9 @@ namespace LucoaBot.Services
 
             // warm database pool and check migrations
             if (_databaseContext.Database.GetPendingMigrations().Any())
-                throw new ApplicationException("You need to run the migrations...");
+                await _databaseContext.Database.MigrateAsync();
+
+            //throw new ApplicationException("You need to run the migrations...");
 
             //_metricServer.Start();
 
