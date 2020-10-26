@@ -11,7 +11,7 @@ namespace LucoaBot.Services
     {
         private readonly ILoggerFactory _loggerFactory;
 
-        public DatabaseContext(DbContextOptions options, ILoggerFactory loggerFactory) : base(options)
+        public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options)
         {
             _loggerFactory = LoggerFactory.Create(builder =>
             {
@@ -27,6 +27,7 @@ namespace LucoaBot.Services
         public DbSet<CustomCommand> CustomCommands { get; set; }
         public DbSet<GuildConfig> GuildConfigs { get; set; }
         public DbSet<SelfRole> SelfRoles { get; set; }
+        public DbSet<StarboardCache> StarboardCache { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -66,6 +67,16 @@ namespace LucoaBot.Services
                         b.Property(e => e.RoleId).HasConversion<long>();
                         b.HasIndex(e => e.GuildId);
                         b.HasIndex(e => new {e.GuildId, e.RoleId}).IsUnique();
+                    });
+            
+            modelBuilder
+                .Entity<StarboardCache>(
+                    b =>
+                    {
+                        b.Property(e => e.StarboardId).HasConversion<long>();
+                        b.Property(e => e.MessageId).HasConversion<long>();
+                        b.Property(e => e.GuildId).HasConversion<long>();
+                        b.HasIndex(e => new {e.MessageId, e.GuildId}).IsUnique();
                     });
         }
     }

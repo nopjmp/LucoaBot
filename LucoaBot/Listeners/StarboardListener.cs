@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
+using LucoaBot.Models;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,7 +17,7 @@ namespace LucoaBot.Listeners
     {
         private readonly ILogger<StarboardListener> _logger;
         private readonly IServiceProvider _serviceProvider;
-
+        private readonly DatabaseContext _database;
         private readonly DiscordClient _client;
 
         // TODO: Reaction queue processing
@@ -28,11 +29,12 @@ namespace LucoaBot.Listeners
         private const int DefaultThreshold = 1;
 #endif
         public StarboardListener(ILogger<StarboardListener> logger, DiscordClient client,
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider, DatabaseContext database)
         {
             _logger = logger;
             _client = client;
             _serviceProvider = serviceProvider;
+            _database = database;
         }
 
         public void Initialize()
@@ -106,7 +108,15 @@ namespace LucoaBot.Listeners
                 {
                     var starboardChannel = args.Guild.GetChannel(starboardChannelId.Value);
 
-                    var starMessage = await FindStarPost(starboardChannel, args.Message.Id.ToString(), false);
+                    var starMessage = await FindStarPost(starboardChannel, args.Message.Id, false);
+
+                    // TODO: use the cacheEntry from the FindStarPost
+                    var cacheEntry = await _database.StarboardCache.FirstOrDefaultAsync(e => e.MessageId == args.Message.Id && e.GuildId == starboardChannel.GuildId);
+                    if (cacheEntry != null)
+                    {
+                        _database.StarboardCache.Remove(cacheEntry);
+                        await _database.SaveChangesAsync();
+                    }
                     if (starMessage != null) await starMessage.DeleteAsync();
                 }
             }
@@ -118,25 +128,42 @@ namespace LucoaBot.Listeners
 
         private static readonly IReadOnlyList<DiscordEmbedField> EmptyEmbedFields = new List<DiscordEmbedField>();
 
-        private async Task<DiscordMessage> FindStarPost(DiscordChannel starboardChannel, string messageId,
+        private async Task<DiscordMessage> FindStarPost(DiscordChannel starboardChannel, ulong messageId,
             bool timeLimited = true)
         {
             var dateThreshold = DateTimeOffset.Now.AddDays(-1);
 
             // TODO: optimize this with a cache when we hit 100+ servers with star msg id -> chan,msg id
+
+
+            var cacheEntry = await _database.StarboardCache.FirstOrDefaultAsync(e => e.MessageId == messageId && e.GuildId == starboardChannel.GuildId);
+
+            if (cacheEntry != null)
+            {
+                var message = await starboardChannel.GetMessageAsync(cacheEntry.StarboardId);
+                return message;
+            }
+
+            var messageIdStr = messageId.ToString();
             var messages = await starboardChannel.GetMessagesAsync();
+            var count = 0;
             while (messages.Count > 0)
             {
                 foreach (var message in messages)
                 {
+                    count++;
+
                     // break when message is too old.
                     if (timeLimited && message.CreationTimestamp <= dateThreshold) return null;
 
                     if (message.Author.Id == _client.CurrentUser.Id && message.Embeds
                         .SelectMany(e => e.Fields ?? EmptyEmbedFields)
-                        .Any(f => f.Name == "Message ID" && f.Value == messageId))
+                        .Any(f => f.Name == "Message ID" && f.Value == messageIdStr))
                         return message;
                 }
+
+                // break when we hit 400 messages
+                if (count > 400) return null;
 
                 messages = await starboardChannel.GetMessagesBeforeAsync(messages.Last().Id);
             }
@@ -150,15 +177,24 @@ namespace LucoaBot.Listeners
             var starboardChannel = channel.Guild.GetChannel(starboardChannelId);
             if (starboardChannel != null)
             {
-                var starboardMessage = await FindStarPost(starboardChannel, message.Id.ToString());
+                var starboardMessage = await FindStarPost(starboardChannel, message.Id);
 
                 if (count < DefaultThreshold)
                 {
-                    if (starboardMessage != null) await starboardMessage.DeleteAsync();
+                    if (starboardMessage != null)
+                    {
+                        var cacheEntry = await _database.StarboardCache.FirstOrDefaultAsync(e => e.MessageId == message.Id && e.GuildId == starboardChannel.GuildId);
+                        if (cacheEntry != null)
+                        {
+                            _database.StarboardCache.Remove(cacheEntry);
+                            await _database.SaveChangesAsync();
+                        }
+                        await starboardMessage.DeleteAsync();
+                    }
                 }
                 else
                 {
-                    var scale = (byte) (255 - Math.Clamp((count - DefaultThreshold) * 25, 0, 255));
+                    var scale = (byte)(255 - Math.Clamp((count - DefaultThreshold) * 25, 0, 255));
 
                     var embedBuilder = new DiscordEmbedBuilder
                     {
@@ -201,9 +237,21 @@ namespace LucoaBot.Listeners
                             $"[Click here to go to the original message.]({message.JumpLink})");
 
                     if (starboardMessage == null)
-                        await starboardChannel.SendMessageAsync(embed: embedBuilder.Build());
+                    {
+                        var messasge = await starboardChannel.SendMessageAsync(embed: embedBuilder.Build());
+                        var cacheEntry = new StarboardCache
+                        {
+                            StarboardId = message.Id,
+                            GuildId = starboardChannel.GuildId,
+                            MessageId = message.Id
+                        };
+                        _database.StarboardCache.Add(cacheEntry);
+                        await _database.SaveChangesAsync();
+                    }
                     else
+                    {
                         await starboardMessage.ModifyAsync(embed: embedBuilder.Build());
+                    }
                 }
             }
         }
