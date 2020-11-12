@@ -48,12 +48,14 @@ namespace LucoaBot
                             });
 
                     services.AddHostedService<ApplicationLifetimeHostedService>();
-
+                    
                     services.AddSingleton(new DiscordClient(new DiscordConfiguration
                     {
                         TokenType = TokenType.Bot,
                         Token = hostContext.Configuration["Token"],
-                        AutoReconnect = true
+                        AutoReconnect = true,
+                        // TODO: remove things that are not needed anymore and are not supported for large bots.
+                        Intents = DiscordIntents.All
                     }));
 
                     services.AddSingleton<CommandHandlerService>();

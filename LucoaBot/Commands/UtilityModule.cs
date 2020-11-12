@@ -83,83 +83,13 @@ namespace LucoaBot.Commands
                 {"Text Channels", context.Guild.Channels.Count(c => c.Value.Type == ChannelType.Text).ToString()},
                 {"Voice Channels", context.Guild.Channels.Count(c => c.Value.Type == ChannelType.Voice).ToString()},
                 {"Total Members", context.Guild.MemberCount.ToString()},
-                {"People", context.Guild.Members.Count(e => !e.Value.IsBot).ToString()},
-                {"Bots", context.Guild.Members.Count(e => e.Value.IsBot).ToString()},
+                // {"People", context.Guild.Members.Count(e => !e.Value.IsBot).ToString()},
+                // {"Bots", context.Guild.Members.Count(e => e.Value.IsBot).ToString()},
                 {"Emojis", context.Guild.Emojis.Count.ToString()},
                 {"Created At", context.Guild.CreationTimestamp.ToString("r")}
             };
 
             foreach (var (name, value) in fields) builder.AddField(name, value, true);
-
-            await context.RespondAsync(embed: builder.Build());
-        }
-
-        [Command("userinfo")]
-        [Description("Returns the user's information")]
-        [RequireGuild]
-        public async Task UserInfoAsync(CommandContext context, DiscordMember user = null)
-        {
-            if (user == null) user = await context.Guild.GetMemberAsync(context.User.Id);
-
-            var color = user.Presence.Status switch
-            {
-                UserStatus.Idle => new DiscordColor(250, 166, 26),
-                UserStatus.DoNotDisturb => new DiscordColor(240, 71, 71),
-                UserStatus.Invisible => new DiscordColor(116, 127, 141),
-                UserStatus.Offline => new DiscordColor(116, 127, 141),
-                _ => new DiscordColor(67, 181, 129)
-            };
-
-            var builder = new DiscordEmbedBuilder
-            {
-                Color = color,
-                Author = new DiscordEmbedBuilder.EmbedAuthor
-                {
-                    Name = $"{user.Username}#{user.Discriminator}",
-                    IconUrl = user.AvatarUrl
-                },
-                Thumbnail = new DiscordEmbedBuilder.EmbedThumbnail
-                {
-                    Width = 0,
-                    Height = 0,
-                    Url = user.AvatarUrl
-                },
-                Description = user.Mention,
-                Timestamp = DateTimeOffset.Now,
-                Footer = new DiscordEmbedBuilder.EmbedFooter
-                {
-                    Text = $"ID: {user.Id}"
-                }
-            };
-
-            // TODO: fix this
-            var roles = user.Roles
-                .Where(e => e.Name != "Everyone")
-                .ToImmutableList();
-
-            var fields = new Dictionary<string, string>
-            {
-                {"Status", user.Presence.Status.ToString()},
-                {"Joined", user.JoinedAt.ToString("r")},
-                {"Registered", user.CreationTimestamp.ToString("r")},
-                {$"Roles [{roles.Count}]", string.Join(" ", roles.Select(e => e.Mention))}
-            };
-
-            foreach (var (name, value) in fields) builder.AddField(name, value, true);
-
-            if ((user.PermissionsIn(context.Channel) & Permissions.Administrator) != 0)
-            {
-                builder.AddField("Key Permissions", Permissions.Administrator.ToString(), true);
-            }
-            else
-            {
-                var perms = KeyPermissions
-                    .Where(e => (user.PermissionsIn(context.Channel) & e) != 0)
-                    .Select(e => e.ToString())
-                    .ToArray();
-                if (perms.Any())
-                    builder.AddField("Key Permissions", string.Join(" ", perms), true);
-            }
 
             await context.RespondAsync(embed: builder.Build());
         }
