@@ -238,14 +238,14 @@ namespace LucoaBot.Listeners
 
                     if (starboardMessage == null)
                     {
-                        var messasge = await starboardChannel.SendMessageAsync(embed: embedBuilder.Build());
+                        starboardMessage = await starboardChannel.SendMessageAsync(embed: embedBuilder.Build());
                         var cacheEntry = new StarboardCache
                         {
-                            StarboardId = message.Id,
+                            StarboardId = starboardMessage.Id,
                             GuildId = starboardChannel.GuildId,
                             MessageId = message.Id
                         };
-                        _database.StarboardCache.Add(cacheEntry);
+                        await _database.StarboardCache.AddAsync(cacheEntry);
                         await _database.SaveChangesAsync();
                     }
                     else
