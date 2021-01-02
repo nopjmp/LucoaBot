@@ -54,6 +54,9 @@ namespace LucoaBot.Services
             using var scope = _services.CreateScope();
             var databaseContext = scope.ServiceProvider.GetService<DatabaseContext>();
 
+            if (databaseContext == null)
+                return msg.GetStringPrefixLength(prefix);
+
             var guildConfigPrefix = await databaseContext.GuildConfigs.AsNoTracking()
                 .Where(e => e.GuildId == msg.Channel.GuildId)
                 .Select(e => e.Prefix)
@@ -76,19 +79,23 @@ namespace LucoaBot.Services
                 {
                     using var scope = _services.CreateScope();
                     var context = scope.ServiceProvider.GetService<DatabaseContext>();
-                    var customCommand = await context.CustomCommands.AsNoTracking()
-                        .Where(c => c.Command == e.CommandName)
-                        .Select(c => c.Response)
-                        .FirstOrDefaultAsync();
 
-                    if (customCommand != null)
+                    if (context != null)
                     {
-                        // filter out @everyone and @here mentions...
-                        var response = customCommand
-                            // ReSharper disable once StringLiteralTypo
-                            .Replace("@everyone", "@\u0435veryone")
-                            .Replace("@here", "@h\u0435re");
-                        await args.Context.RespondAsync(response);
+                        var customCommand = await context.CustomCommands.AsNoTracking()
+                            .Where(c => c.Command == e.CommandName)
+                            .Select(c => c.Response)
+                            .FirstOrDefaultAsync();
+
+                        if (customCommand != null)
+                        {
+                            // filter out @everyone and @here mentions...
+                            var response = customCommand
+                                // ReSharper disable once StringLiteralTypo
+                                .Replace("@everyone", "@\u0435veryone")
+                                .Replace("@here", "@h\u0435re");
+                            await args.Context.RespondAsync(response);
+                        }
                     }
 
                     break;

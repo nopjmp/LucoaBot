@@ -30,8 +30,6 @@ namespace LucoaBot.Services
         private readonly StarboardListener _starboardListener;
         private readonly TemperatureListener _temperatureListener;
 
-        private CancellationTokenSource _userCountTokenSource;
-
         public ApplicationLifetimeHostedService(
             IConfiguration configuration,
             ILogger<ApplicationLifetimeHostedService> logger,
@@ -72,45 +70,6 @@ namespace LucoaBot.Services
             //     _discordLogger.Log(eventArgs.Level.AsLoggingLevel(), eventArgs.Exception, eventArgs.Message);
             // };
 
-            _discordClient.SocketOpened += (_, __) =>
-            {
-                // Setup Cancellation for when we disconnect.
-                _userCountTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                var userCountToken = _userCountTokenSource.Token;
-
-                Task.Run(async () =>
-                {
-                    var lastCount = -1;
-                    while (!userCountToken.IsCancellationRequested)
-                    {
-                        var count = _discordClient.Guilds.Aggregate(0, (a, g) => a + g.Value.MemberCount);
-                        if (count != lastCount)
-                        {
-                            lastCount = count;
-                            if (count > 0)
-                                await _discordClient.UpdateStatusAsync(new DiscordActivity($"{count} users",
-                                    ActivityType.Watching));
-                        }
-
-                        await Task.Delay(10000, userCountToken);
-                    }
-                }, userCountToken);
-
-                return Task.CompletedTask;
-            };
-
-            _discordClient.SocketClosed += (_, __) =>
-            {
-                if (_userCountTokenSource != null)
-                {
-                    _userCountTokenSource.Cancel();
-                    _userCountTokenSource.Dispose();
-                    _userCountTokenSource = null;
-                }
-
-                return Task.CompletedTask;
-            };
-
             await _discordClient.ConnectAsync();
 
             _logListener.Initialize();
@@ -119,13 +78,6 @@ namespace LucoaBot.Services
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            if (_userCountTokenSource != null)
-            {
-                _userCountTokenSource.Cancel();
-                _userCountTokenSource.Dispose();
-                _userCountTokenSource = null;
-            }
-
             await _discordClient.DisconnectAsync();
         }
     }
