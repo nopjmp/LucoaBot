@@ -14,6 +14,7 @@ using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using LucoaBot.Extensions;
 using SkiaSharp;
+using Svg.Skia;
 
 namespace LucoaBot.Commands
 {
@@ -159,6 +160,19 @@ namespace LucoaBot.Commands
                     var filename = Path.GetFileName(emoteUri.LocalPath);
                     await context.RespondAsync(builder.WithFile(filename, response));
                     return;
+                }
+                else if (emote.Id == 0)
+                {
+                    var filename = Path.GetFileNameWithoutExtension(emoteUri.LocalPath);
+                    using var svg = new SKSvg();
+                    if (svg.Load(response) is { })
+                    {
+                        float scaleX = 128 / svg.Picture.CullRect.Height;
+                        float scaleY = 128 / svg.Picture.CullRect.Width;
+                        using var bitmap = svg.Picture.ToBitmap(SKColors.Transparent, scaleX, scaleY, SKColorType.Rgba8888, SKAlphaType.Premul, SKColorSpace.CreateSrgbLinear());
+                        using var data = bitmap.PeekPixels().Encode(SKWebpEncoderOptions.Default);
+                        await context.RespondAsync(builder.WithFile(filename + ".webp", data.AsStream()));
+                    }
                 }
                 else
                 {

@@ -55,6 +55,7 @@
     <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
     <PackageReference Include="SkiaSharp" Version="2.80.2" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.80.2" />
+    <PackageReference Include="Svg.Skia" Version="0.5.0" />
     <PackageReference Include="ZXing.Net" Version="0.16.6" />
     <PackageReference Include="ZXing.Net.Bindings.SkiaSharp" Version="0.16.10" />
   </ItemGroup>
