@@ -12,6 +12,7 @@ using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
+using LucoaBot.Extensions;
 using SkiaSharp;
 
 namespace LucoaBot.Commands
@@ -144,36 +145,40 @@ namespace LucoaBot.Commands
         [Description("Takes an emote and makes it larger")]
         public async Task JumboAsync(CommandContext context, DiscordEmoji emote)
         {
-            var emoteUri = new Uri(emote.Url);
-
-            var httpClient = _httpClientFactory.CreateClient();
-            await using var response = await httpClient.GetStreamAsync(emoteUri);
-
-            if (emote.IsAnimated)
+            try
             {
-                var filename = Path.GetFileName(emoteUri.LocalPath);
-                await context.RespondWithFileAsync(filename, response);
-            }
-            else
-            {
-                var filename = Path.GetFileNameWithoutExtension(emoteUri.LocalPath);
-                using var bitmap = SKBitmap.Decode(response);
-                if (bitmap == null)
-                    return;
+                var emoteUri = new Uri(emote.GetEmojiURL());
 
-                var width = Math.Min(128, bitmap.Width * 2);
-                var height = Math.Min(128, bitmap.Height * 2);
+                using var httpClient = _httpClientFactory.CreateClient();
+                await using var response = await httpClient.GetStreamAsync(emoteUri);
 
-                SKBitmap newBitmap;
-                using var destination =
-                    new SKBitmap(new SKImageInfo(width, height, bitmap.ColorType, bitmap.AlphaType));
-                if (bitmap.Width < width && bitmap.Height < height)
-                    newBitmap = !bitmap.ScalePixels(destination, SKFilterQuality.High) ? bitmap : destination;
+                if (emote.IsAnimated)
+                {
+                    var filename = Path.GetFileName(emoteUri.LocalPath);
+                    await context.RespondWithFileAsync(filename, response);
+                }
                 else
-                    newBitmap = bitmap;
+                {
+                    var filename = Path.GetFileNameWithoutExtension(emoteUri.LocalPath);
+                    using var bitmap = SKBitmap.Decode(response);
+                    if (bitmap == null)
+                        return;
 
-                var data = newBitmap.PeekPixels().Encode(SKWebpEncoderOptions.Default);
-                await context.RespondWithFileAsync(filename + ".webp", data.AsStream());
+                    var width = Math.Min(128, bitmap.Width * 2);
+                    var height = Math.Min(128, bitmap.Height * 2);
+
+                    using var destination =
+                        new SKBitmap(new SKImageInfo(width, height, bitmap.ColorType, bitmap.AlphaType));
+                    if (bitmap.ScalePixels(destination, SKFilterQuality.High))
+                    {
+                        using var data = destination.PeekPixels().Encode(SKWebpEncoderOptions.Default);
+                        await context.RespondWithFileAsync(filename + ".webp", data.AsStream());
+                    }
+                }
+            }
+            catch(InvalidOperationException)
+            {
+                // Do nothing
             }
         }
 
