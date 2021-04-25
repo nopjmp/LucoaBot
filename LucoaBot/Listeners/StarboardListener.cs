@@ -175,7 +175,7 @@ namespace LucoaBot.Listeners
             int count)
         {
             var starboardChannel = channel.Guild.GetChannel(starboardChannelId);
-            if (starboardChannel != null)
+            if (starboardChannel != null && starboardChannel.GuildId.HasValue)
             {
                 var starboardMessage = await FindStarPost(starboardChannel, message.Id);
 
@@ -242,7 +242,7 @@ namespace LucoaBot.Listeners
                         var cacheEntry = new StarboardCache
                         {
                             StarboardId = starboardMessage.Id,
-                            GuildId = starboardChannel.GuildId,
+                            GuildId = starboardChannel.GuildId.Value,
                             MessageId = message.Id
                         };
                         await _database.StarboardCache.AddAsync(cacheEntry);

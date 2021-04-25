@@ -152,10 +152,13 @@ namespace LucoaBot.Commands
                 using var httpClient = _httpClientFactory.CreateClient();
                 await using var response = await httpClient.GetStreamAsync(emoteUri);
 
+                var builder = new DiscordMessageBuilder();
+
                 if (emote.IsAnimated)
                 {
                     var filename = Path.GetFileName(emoteUri.LocalPath);
-                    await context.RespondWithFileAsync(filename, response);
+                    await context.RespondAsync(builder.WithFile(filename, response));
+                    return;
                 }
                 else
                 {
@@ -172,7 +175,8 @@ namespace LucoaBot.Commands
                     if (bitmap.ScalePixels(destination, SKFilterQuality.High))
                     {
                         using var data = destination.PeekPixels().Encode(SKWebpEncoderOptions.Default);
-                        await context.RespondWithFileAsync(filename + ".webp", data.AsStream());
+                        await context.RespondAsync(builder.WithFile(filename + ".webp", data.AsStream()));
+                        return;
                     }
                 }
             }
@@ -193,7 +197,7 @@ namespace LucoaBot.Commands
             var httpClient = _httpClientFactory.CreateClient();
             await using var response = await httpClient.GetStreamAsync(avatarUri);
 
-            await context.RespondWithFileAsync(Path.GetFileName(avatarUri.LocalPath), response);
+            await context.RespondAsync(new DiscordMessageBuilder().WithFile(Path.GetFileName(avatarUri.LocalPath), response));
         }
 
         [Command("xkcd")]
