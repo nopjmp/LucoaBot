@@ -169,7 +169,7 @@ namespace LucoaBot.Commands
                     {
                         float scaleX = 128 / svg.Picture.CullRect.Height;
                         float scaleY = 128 / svg.Picture.CullRect.Width;
-                        using var bitmap = svg.Picture.ToBitmap(SKColors.Transparent, scaleX, scaleY, SKColorType.Rgba8888, SKAlphaType.Premul, SKColorSpace.CreateSrgbLinear());
+                        using var bitmap = svg.Picture.ToBitmap(SKColors.Transparent, scaleX, scaleY, SKColorType.Rgba8888, SKAlphaType.Premul, SKColorSpace.CreateSrgb());
                         using var data = bitmap.PeekPixels().Encode(SKWebpEncoderOptions.Default);
                         await context.RespondAsync(builder.WithFile(filename + ".webp", data.AsStream()));
                     }
