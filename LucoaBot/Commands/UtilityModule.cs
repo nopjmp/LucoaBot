@@ -151,10 +151,10 @@ namespace LucoaBot.Commands
                 var emoteUri = new Uri(emote.GetEmojiURL());
 
                 using var httpClient = _httpClientFactory.CreateClient();
-                using var response = await httpClient.GetStreamAsync(emoteUri);
+                await using var response = await httpClient.GetStreamAsync(emoteUri);
 
                 // Workaround httpClient response streams not being allowed to seek around.
-                using var stream = new MemoryStream();
+                await using var stream = new MemoryStream();
                 await response.CopyToAsync(stream);
                 stream.Seek(0, SeekOrigin.Begin);
 
@@ -175,8 +175,8 @@ namespace LucoaBot.Commands
                         float scaleY = 128 / svg.Picture.CullRect.Width;
                         using var bitmap = svg.Picture.ToBitmap(SKColors.Transparent, scaleX, scaleY, SKColorType.Rgba8888, SKAlphaType.Premul, SKColorSpace.CreateSrgb());
                         using var image = SKImage.FromBitmap(bitmap);
-                        using var data = image.Encode(SKEncodedImageFormat.Webp, 90);
-                        await context.RespondAsync(builder.WithFile(filename + ".webp", data.AsStream()));
+                        using var _stream = image.Encode(SKEncodedImageFormat.Webp, 90).AsStream(true);
+                        await context.RespondAsync(builder.WithFile(filename + ".webp", _stream));
                     }
                 }
                 else
@@ -193,8 +193,8 @@ namespace LucoaBot.Commands
                     if (bitmap.ScalePixels(destination, SKFilterQuality.High))
                     {
                         using var image = SKImage.FromBitmap(destination);
-                        using var data = image.Encode(SKEncodedImageFormat.Webp, 90);
-                        await context.RespondAsync(builder.WithFile(filename + ".webp", data.AsStream()));
+                        using var _stream = image.Encode(SKEncodedImageFormat.Webp, 90).AsStream(true);
+                        await context.RespondAsync(builder.WithFile(filename + ".webp", _stream));
                     }
                 }
             }
