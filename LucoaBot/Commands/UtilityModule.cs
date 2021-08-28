@@ -151,21 +151,25 @@ namespace LucoaBot.Commands
                 var emoteUri = new Uri(emote.GetEmojiURL());
 
                 using var httpClient = _httpClientFactory.CreateClient();
-                await using var response = await httpClient.GetStreamAsync(emoteUri);
+                using var response = await httpClient.GetStreamAsync(emoteUri);
+
+                // Workaround httpClient response streams not being allowed to seek around.
+                using var stream = new MemoryStream();
+                await response.CopyToAsync(stream);
+                stream.Seek(0, SeekOrigin.Begin);
 
                 var builder = new DiscordMessageBuilder();
-
                 if (emote.IsAnimated)
                 {
                     var filename = Path.GetFileName(emoteUri.LocalPath);
-                    await context.RespondAsync(builder.WithFile(filename, response));
+                    await context.RespondAsync(builder.WithFile(filename, stream));
                     return;
                 }
                 else if (emote.Id == 0)
                 {
                     var filename = Path.GetFileNameWithoutExtension(emoteUri.LocalPath);
                     using var svg = new SKSvg();
-                    if (svg.Load(response) is { })
+                    if (svg.Load(stream) is { })
                     {
                         float scaleX = 128 / svg.Picture.CullRect.Height;
                         float scaleY = 128 / svg.Picture.CullRect.Width;
@@ -178,18 +182,17 @@ namespace LucoaBot.Commands
                 else
                 {
                     var filename = Path.GetFileNameWithoutExtension(emoteUri.LocalPath);
-                    using var bitmap = SKBitmap.Decode(response);
+                    using var bitmap = SKBitmap.Decode(stream);
                     if (bitmap == null)
                         return;
 
                     var width = Math.Min(128, bitmap.Width * 2);
                     var height = Math.Min(128, bitmap.Height * 2);
 
-                    using var destination =
-                        new SKBitmap(new SKImageInfo(width, height, bitmap.ColorType, bitmap.AlphaType));
+                    using var destination = new SKBitmap(width, height);
                     if (bitmap.ScalePixels(destination, SKFilterQuality.High))
                     {
-                        using var image = SKImage.FromBitmap(bitmap);
+                        using var image = SKImage.FromBitmap(destination);
                         using var data = image.Encode(SKEncodedImageFormat.Webp, 90);
                         await context.RespondAsync(builder.WithFile(filename + ".webp", data.AsStream()));
                     }
