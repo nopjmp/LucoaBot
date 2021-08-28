@@ -186,10 +186,8 @@ namespace LucoaBot.Commands
                     if (bitmap == null)
                         return;
 
-                    var width = Math.Min(128, bitmap.Width * 2);
-                    var height = Math.Min(128, bitmap.Height * 2);
-
-                    using var destination = new SKBitmap(width, height);
+                    var scale = 128.0f / bitmap.Height;
+                    using var destination = new SKBitmap((int)(bitmap.Width * scale), (int)(bitmap.Height * scale));
                     if (bitmap.ScalePixels(destination, SKFilterQuality.High))
                     {
                         using var image = SKImage.FromBitmap(destination);
