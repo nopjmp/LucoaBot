@@ -146,7 +146,7 @@ namespace LucoaBot.Commands
             }
             catch(DiceException e)
             {
-                await context.RespondAsync($"{context.User.Mention} invalid roll expression {e}");
+                await context.RespondAsync($"{context.User.Mention} {e.Message}");
             }
         }
 
