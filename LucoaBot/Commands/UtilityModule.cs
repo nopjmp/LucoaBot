@@ -1,13 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
-using System.Security.Cryptography;
-using System.Text.Json;
-using System.Threading.Tasks;
+﻿using Dice;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
@@ -15,6 +6,15 @@ using DSharpPlus.Entities;
 using LucoaBot.Extensions;
 using SkiaSharp;
 using Svg.Skia;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Security.Cryptography;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace LucoaBot.Commands
 {
@@ -136,10 +136,18 @@ namespace LucoaBot.Commands
 
         [Command("roll")]
         [Description("Generates a number between 1 and the number specified")]
-        public async Task RollAsync(CommandContext context, int number)
+        public async Task RollAsync(CommandContext context, string rollExpression)
         {
-            await context.RespondAsync(
-                $"{context.User.Mention} rolled a {RandomNumberGenerator.GetInt32(1, number + 1)}");
+            try
+            {
+                var result = Roller.Roll(rollExpression);
+                await context.RespondAsync(
+                    $"{context.User.Mention} rolled {result.Value}");
+            }
+            catch(DiceException e)
+            {
+                await context.RespondAsync($"{context.User.Mention} invalid roll expression {e}");
+            }
         }
 
         [Command("jumbo")]
