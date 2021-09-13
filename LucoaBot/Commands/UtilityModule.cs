@@ -140,7 +140,13 @@ namespace LucoaBot.Commands
         {
             try
             {
-                var result = Roller.Roll(rollExpression);
+                // Anti-cheat
+                if (int.TryParse(rollExpression, out var num))
+                {
+                    rollExpression = $"d{num}";
+                }
+ 
+                var expression = Roller.Roll(rollExpression);
                 await context.RespondAsync(
                     $"{context.User.Mention} rolled {result.Value}");
             }
