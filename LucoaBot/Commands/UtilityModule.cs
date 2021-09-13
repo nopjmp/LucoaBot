@@ -146,7 +146,7 @@ namespace LucoaBot.Commands
                     rollExpression = $"d{num}";
                 }
  
-                var expression = Roller.Roll(rollExpression);
+                var result = Roller.Roll(rollExpression);
                 await context.RespondAsync(
                     $"{context.User.Mention} rolled {result.Value}");
             }
