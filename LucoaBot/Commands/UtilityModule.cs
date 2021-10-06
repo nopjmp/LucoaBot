@@ -28,7 +28,8 @@ namespace LucoaBot.Commands
         {
             Permissions.KickMembers, Permissions.BanMembers, Permissions.ManageChannels,
             Permissions.ManageRoles, Permissions.ManageGuild, Permissions.ManageWebhooks,
-            Permissions.ManageNicknames, Permissions.MentionEveryone, Permissions.ManageEmojis
+            Permissions.ManageNicknames, Permissions.MentionEveryone, Permissions.ManageEmojis,
+            Permissions.ManageThreads
         };
 
         private readonly IHttpClientFactory _httpClientFactory;
