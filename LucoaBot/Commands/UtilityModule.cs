@@ -274,12 +274,16 @@ namespace LucoaBot.Commands
                 .Where(e => e.Name != "Everyone")
                 .ToImmutableList();
 
+            var rolesStr = string.Join(" ", roles.Select(e => e.Mention));
+            if (string.IsNullOrEmpty(rolesStr))
+                rolesStr = "(empty)";
+
             var fields = new Dictionary<string, string>
             {
                 {"Status", user.Presence.Status.ToString()},
                 {"Joined", user.JoinedAt.ToString("r")},
                 {"Registered", user.CreationTimestamp.ToString("r")},
-                {$"Roles [{roles.Count}]", string.Join(" ", roles.Select(e => e.Mention))}
+                {$"Roles [{roles.Count}]", rolesStr}
             };
 
             foreach (var (name, value) in fields) builder.AddField(name, value, true);
