@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
 using DSharpPlus;
-using LucoaBot.Models;
+using LucoaBot.Data;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
 

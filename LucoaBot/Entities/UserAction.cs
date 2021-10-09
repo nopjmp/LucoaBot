@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace LucoaBot.Models
+namespace LucoaBot.Data
 {
     public enum UserAction
     {
