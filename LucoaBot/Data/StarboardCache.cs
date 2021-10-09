@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace LucoaBot.Models
+namespace LucoaBot.Data
 {
     public class StarboardCache
     {
