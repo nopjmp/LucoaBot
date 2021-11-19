@@ -1,4 +1,4 @@
-﻿namespace LucoaBot.Data
+﻿namespace LucoaBot.Data.Entities
 {
     public struct UserActionMessage
     {

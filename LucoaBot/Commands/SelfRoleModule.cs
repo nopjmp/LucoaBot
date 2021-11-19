@@ -6,7 +6,7 @@ using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
-using LucoaBot.Data;
+using LucoaBot.Data.Entities;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -134,6 +134,7 @@ namespace LucoaBot.Commands
 
                 if (selfRoleEntry != null)
                 {
+                    /*
                     if (selfRoleEntry.Category != null && selfRoleEntry.Category != "default")
                     {
                         var roles = await _databaseContext.SelfRoles.AsNoTracking()
@@ -148,6 +149,7 @@ namespace LucoaBot.Commands
 
                         await Task.WhenAll(removeList);
                     }
+                    */
 
                     // TODO: use ReplaceRolesAsync
                     await member.GrantRoleAsync(role);

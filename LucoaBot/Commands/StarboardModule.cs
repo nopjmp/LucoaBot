@@ -4,7 +4,7 @@ using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
-using LucoaBot.Data;
+using LucoaBot.Data.Entities;
 using LucoaBot.Services;
 using Microsoft.EntityFrameworkCore;
 

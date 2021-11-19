@@ -20,7 +20,7 @@ namespace LucoaBot.Migrations
                 .HasAnnotation("ProductVersion", "3.1.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            modelBuilder.Entity("LucoaBot.Data.CustomCommand", b =>
+            modelBuilder.Entity("LucoaBot.Data.Entities.CustomCommand", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -48,7 +48,7 @@ namespace LucoaBot.Migrations
                     b.ToTable("CustomCommands");
                 });
 
-            modelBuilder.Entity("LucoaBot.Data.GuildConfig", b =>
+            modelBuilder.Entity("LucoaBot.Data.Entities.GuildConfig", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -77,7 +77,7 @@ namespace LucoaBot.Migrations
                     b.ToTable("GuildConfigs");
                 });
 
-            modelBuilder.Entity("LucoaBot.Data.SelfRole", b =>
+            modelBuilder.Entity("LucoaBot.Data.Entities.SelfRole", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -104,7 +104,7 @@ namespace LucoaBot.Migrations
                     b.ToTable("SelfRoles");
                 });
 
-            modelBuilder.Entity("LucoaBot.Data.StarboardCache", b =>
+            modelBuilder.Entity("LucoaBot.Data.Entities.StarboardCache", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()

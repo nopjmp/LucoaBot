@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using LucoaBot.Data;
+using LucoaBot.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Serilog;
