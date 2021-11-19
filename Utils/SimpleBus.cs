@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
-namespace Paranoid.ChannelBus
+namespace LucoaBot.Utils
 {
     public class SimpleBus : IBus
     {

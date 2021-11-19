@@ -7,7 +7,7 @@ using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using LucoaBot.Data;
-using Paranoid.ChannelBus;
+using LucoaBot.Utils;
 
 namespace LucoaBot.Services
 {

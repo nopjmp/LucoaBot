@@ -2,7 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Paranoid.ChannelBus
+namespace LucoaBot.Utils
 {
     internal sealed class Subscription
     {
