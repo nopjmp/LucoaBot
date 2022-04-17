@@ -87,6 +87,7 @@ namespace LucoaBot.Commands
                 {"Text Channels", context.Guild.Channels.Count(c => c.Value.Type == ChannelType.Text).ToString()},
                 {"Voice Channels", context.Guild.Channels.Count(c => c.Value.Type == ChannelType.Voice).ToString()},
                 {"Total Members", context.Guild.MemberCount.ToString()},
+                {"Large", context.Guild.IsLarge.ToString()},
                 // {"People", context.Guild.Members.Count(e => !e.Value.IsBot).ToString()},
                 // {"Bots", context.Guild.Members.Count(e => e.Value.IsBot).ToString()},
                 {"Emojis", context.Guild.Emojis.Count.ToString()},
