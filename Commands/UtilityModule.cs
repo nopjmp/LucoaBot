@@ -80,12 +80,12 @@ namespace LucoaBot.Commands
             };
 
             var regions = await context.Guild.ListVoiceRegionsAsync();
-            var voiceChannels = context.Guild.Channels.Values.Where(c => c.Type == ChannelType.Voice);
-            var voiceChannelRegions = voiceChannels.Select(c => c.RtcRegion.Name);
+            // var voiceChannels = context.Guild.Channels.Values.Where(c => c.Type == ChannelType.Voice);
+            // var voiceChannelRegions = voiceChannels.Select(c => c.RtcRegion?.Name);
             var fields = new Dictionary<string, string>
             {
                 {"Id", context.Guild.Id.ToString()},
-                {"Voice Region(s)", string.Join(", ", voiceChannelRegions)},
+                // {"Voice Region(s)", string.Join(", ", voiceChannelRegions)},
                 {"Categories", context.Guild.Channels.Count(c => c.Value.IsCategory).ToString()},
                 {"Text Channels", context.Guild.Channels.Count(c => c.Value.Type == ChannelType.Text).ToString()},
                 {"Voice Channels", context.Guild.Channels.Count(c => c.Value.Type == ChannelType.Voice).ToString()},
