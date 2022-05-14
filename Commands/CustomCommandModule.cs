@@ -41,7 +41,7 @@ namespace LucoaBot.Commands
             var status = "Updated";
 
             var entry = await _database.CustomCommands
-                .Where(c => c.Command == commandKey)
+                .Where(c => c.Command == commandKey && c.GuildId == context.Guild.Id)
                 .FirstOrDefaultAsync();
 
             if (entry == null)
@@ -71,7 +71,7 @@ namespace LucoaBot.Commands
             var commandKey = command.ToLowerInvariant();
 
             var entry = await _database.CustomCommands
-                .Where(c => c.Command == commandKey)
+                .Where(c => c.Command == commandKey && c.GuildId == context.Guild.Id)
                 .FirstOrDefaultAsync();
 
             if (entry == null)

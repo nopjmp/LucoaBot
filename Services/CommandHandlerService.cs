@@ -83,7 +83,7 @@ namespace LucoaBot.Services
                     if (context != null)
                     {
                         var customCommand = await context.CustomCommands.AsNoTracking()
-                            .Where(c => c.Command == e.CommandName)
+                            .Where(c => c.Command == e.CommandName && c.GuildId == args.Context.Guild.Id)
                             .Select(c => c.Response)
                             .FirstOrDefaultAsync();
 
