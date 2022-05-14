@@ -75,7 +75,7 @@ namespace LucoaBot.Services
 
             foreach (var ex in exs)
             {
-                if (ex is CommandNotFoundException e && args.Command == null)
+                if (ex is CommandNotFoundException e && args.Command == null && args.Context.Guild != null)
                 {
                     using var scope = _services.CreateScope();
                     var context = scope.ServiceProvider.GetService<DatabaseContext>();
