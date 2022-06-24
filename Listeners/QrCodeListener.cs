@@ -7,8 +7,7 @@ using DSharpPlus;
 using DSharpPlus.EventArgs;
 using LucoaBot.Services;
 using Microsoft.Extensions.Logging;
-using SkiaSharp;
-using ZXing.SkiaSharp;
+using ZXing.ImageSharp;
 
 namespace LucoaBot.Listeners
 {
@@ -18,7 +17,7 @@ namespace LucoaBot.Listeners
         private const string DiscordRaString = "https://discord.com/ra/";
 
         // This is more than what discord supports, but just to be careful.
-        private static readonly string[] _validExtensions = {"jpg", "jpeg", "bmp", "png", "webp"};
+        private static readonly string[] _validExtensions = {".jpg", ".jpeg", ".bmp", ".png", ".webp"};
         private readonly BusQueue _busQueue;
         private readonly DiscordClient _discordClient;
         private readonly IHttpClientFactory _httpClientFactory;
@@ -54,30 +53,35 @@ namespace LucoaBot.Listeners
                 .Where(a => IsImageExtension(a.FileName))
                 .Select(a => a.Url);
 
-            var tasks = attachments.Select(async url =>
+            var embeds = args.Message.Embeds
+                .Where(a => a.Url.IsAbsoluteUri && IsImageExtension(a.Url.Segments.Last()))
+                .Select(a => a.Url.ToString());
+
+            var urls = Enumerable.Empty<string>().Concat(attachments).Concat(embeds);
+
+            var tasks = urls.Select(async url =>
             {
                 var httpClient = _httpClientFactory.CreateClient();
                 await using var response = await httpClient.GetStreamAsync(url);
 
                 try
                 {
-                    using var bitmap = SKBitmap.Decode(response);
-                    if (bitmap == null)
-                        return;
+                    using (var image = SixLabors.ImageSharp.Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(response))
+                    {
+                        var reader = new BarcodeReader<SixLabors.ImageSharp.PixelFormats.Rgba32>();
+                        var result = reader.Decode(image);
+                        if (result != null)
+                            if (result.Text.StartsWith(DiscordRaString) || result.Text.StartsWith(DiscordAppRaString))
+                            {
+                                _logger.LogInformation(
+                                    $"Found malicious login url qr code {result.BarcodeFormat} {result.Text} ");
+                                await args.Message.DeleteAsync();
 
-                    var reader = new BarcodeReader();
-                    var result = reader.Decode(bitmap);
-                    if (result != null)
-                        if (result.Text.StartsWith(DiscordRaString) || result.Text.StartsWith(DiscordAppRaString))
-                        {
-                            _logger.LogInformation(
-                                $"Found malicious login url qr code {result.BarcodeFormat} {result.Text} ");
-                            await args.Message.DeleteAsync();
-
-                            await _busQueue.SubmitLog(args.Author, args.Guild,
-                                $"sent malicious login url qr code `{result.BarcodeFormat}` `{result.Text}`",
-                                "deleted message");
-                        }
+                                await _busQueue.SubmitLog(args.Author, args.Guild,
+                                    $"sent malicious login url qr code `{result.BarcodeFormat}` `{result.Text}`",
+                                    "deleted message");
+                            }
+                    }
                 }
                 catch (Exception e)
                 {

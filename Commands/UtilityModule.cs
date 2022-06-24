@@ -4,8 +4,6 @@ using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using LucoaBot.Extensions;
-using SkiaSharp;
-using Svg.Skia;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -16,6 +14,8 @@ using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 
 namespace LucoaBot.Commands
 {
@@ -168,51 +168,40 @@ namespace LucoaBot.Commands
         {
             try
             {
+                if (emote.Id == 0)
+                    return;
+
                 var emoteUri = new Uri(emote.GetEmojiURL());
 
                 using var httpClient = _httpClientFactory.CreateClient();
                 await using var response = await httpClient.GetStreamAsync(emoteUri);
 
                 // Workaround httpClient response streams not being allowed to seek around.
-                await using var stream = new MemoryStream();
-                await response.CopyToAsync(stream);
-                stream.Seek(0, SeekOrigin.Begin);
+                await using var imageStream = new MemoryStream();
+                await response.CopyToAsync(imageStream);
+                imageStream.Seek(0, SeekOrigin.Begin);
 
                 var builder = new DiscordMessageBuilder();
                 if (emote.IsAnimated)
                 {
                     var filename = Path.GetFileName(emoteUri.LocalPath);
-                    await context.RespondAsync(builder.WithFile(filename, stream));
+                    await context.RespondAsync(builder.WithFile(filename, imageStream));
                     return;
-                }
-                else if (emote.Id == 0)
-                {
-                    var filename = Path.GetFileNameWithoutExtension(emoteUri.LocalPath);
-                    using var svg = new SKSvg();
-                    if (svg.Load(stream) is { })
-                    {
-                        float scaleX = 128 / svg.Picture.CullRect.Height;
-                        float scaleY = 128 / svg.Picture.CullRect.Width;
-                        using var bitmap = svg.Picture.ToBitmap(SKColors.Transparent, scaleX, scaleY, SKColorType.Rgba8888, SKAlphaType.Premul, SKColorSpace.CreateSrgb());
-                        using var image = SKImage.FromBitmap(bitmap);
-                        using var _stream = image.Encode(SKEncodedImageFormat.Webp, 90).AsStream(true);
-                        await context.RespondAsync(builder.WithFile(filename + ".webp", _stream));
-                    }
                 }
                 else
                 {
                     var filename = Path.GetFileNameWithoutExtension(emoteUri.LocalPath);
-                    using var bitmap = SKBitmap.Decode(stream);
-                    if (bitmap == null)
-                        return;
-
-                    var scale = 128.0f / bitmap.Height;
-                    using var destination = new SKBitmap((int)(bitmap.Width * scale), (int)(bitmap.Height * scale));
-                    if (bitmap.ScalePixels(destination, SKFilterQuality.High))
+                    using (var image = Image.Load(imageStream))
                     {
-                        using var image = SKImage.FromBitmap(destination);
-                        using var _stream = image.Encode(SKEncodedImageFormat.Webp, 90).AsStream(true);
-                        await context.RespondAsync(builder.WithFile(filename + ".webp", _stream));
+                        var scale = 128.0f / image.Height;
+                        image.Mutate(x => x.Resize((int)(image.Width * scale), (int)(image.Height * scale)));
+                        
+                        await using MemoryStream outputStream = new MemoryStream();
+
+                        await image.SaveAsWebpAsync(outputStream);
+                        outputStream.Seek(0, SeekOrigin.Begin);
+
+                        await context.RespondAsync(builder.WithFile(filename + ".webp", outputStream));
                     }
                 }
             }
