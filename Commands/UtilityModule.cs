@@ -173,7 +173,7 @@ namespace LucoaBot.Commands
 
                 var emoteUri = new Uri(emote.GetEmojiURL());
 
-                using var httpClient = _httpClientFactory.CreateClient();
+                var httpClient = _httpClientFactory.CreateClient();
                 await using var response = await httpClient.GetStreamAsync(emoteUri);
 
                 // Workaround httpClient response streams not being allowed to seek around.

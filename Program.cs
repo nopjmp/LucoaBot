@@ -37,7 +37,6 @@ namespace LucoaBot
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
-                    services.AddMemoryCache();
                     services.AddLogging();
                     services.AddHttpClient();
                     services.AddHttpClient("noredirect")

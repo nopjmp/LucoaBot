@@ -21,15 +21,19 @@ namespace LucoaBot.Listeners
         public TemperatureListener(DiscordClient client)
         {
             _client = client;
-
-            _client.MessageCreated += (_, e) =>
-            {
-                TemperatureListenerAsync(e).Forget();
-                return Task.CompletedTask;
-            };
         }
 
-        private async Task TemperatureListenerAsync(MessageCreateEventArgs args)
+        public void Start()
+        {
+            _client.MessageCreated += TemperatureListenerAsync;
+        }
+
+        public void Stop()
+        {
+            _client.MessageCreated += TemperatureListenerAsync;
+        }
+
+        private async Task TemperatureListenerAsync(DiscordClient _, MessageCreateEventArgs args)
         {
             if (args.Author.IsBot) return;
 

@@ -72,12 +72,17 @@ namespace LucoaBot.Services
 
             await _discordClient.ConnectAsync();
 
-            _logListener.Initialize();
-            _starboardListener.Initialize();
+            _temperatureListener.Start();
+            _logListener.Start();
+            _starboardListener.Start();
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
+            _starboardListener.Stop();
+            _logListener.Stop();
+            _temperatureListener.Stop();
+
             await _discordClient.DisconnectAsync();
         }
     }

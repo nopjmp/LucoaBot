@@ -17,13 +17,11 @@ namespace LucoaBot.Commands
     [ModuleLifespan(ModuleLifespan.Transient)]
     public class AdminModule : BaseCommandModule
     {
-        private readonly IMemoryCache _cache;
         private readonly DatabaseContext _databaseContext;
 
-        public AdminModule(DatabaseContext databaseContext, IMemoryCache cache)
+        public AdminModule(DatabaseContext databaseContext)
         {
             _databaseContext = databaseContext;
-            _cache = cache;
         }
 
         [Command("logging")]
@@ -118,8 +116,6 @@ namespace LucoaBot.Commands
 
                 config.Prefix = prefix;
                 await _databaseContext.SaveChangesAsync();
-
-                _cache.Set("guildconfig:" + context.Guild.Id, prefix);
 
                 await context.RespondAsync(
                     $"{context.User.Username}#{context.User.Discriminator} has changed the prefix to `{prefix}`");

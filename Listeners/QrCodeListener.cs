@@ -31,12 +31,16 @@ namespace LucoaBot.Listeners
             _httpClientFactory = httpClientFactory;
             _discordClient = discordClient;
             _busQueue = busQueue;
+        }
 
-            _discordClient.MessageCreated += (_, e) =>
-            {
-                OnMessageReceived(e).Forget();
-                return Task.CompletedTask;
-            };
+        public void Start()
+        {
+            _discordClient.MessageCreated += OnMessageReceived;
+        }
+
+        public void Stop()
+        {
+            _discordClient.MessageCreated -= OnMessageReceived;
         }
 
         private static bool IsImageExtension(string filename)
@@ -45,7 +49,7 @@ namespace LucoaBot.Listeners
             return _validExtensions.Contains(ext.ToLower());
         }
 
-        private async Task OnMessageReceived(MessageCreateEventArgs args)
+        private async Task OnMessageReceived(DiscordClient _, MessageCreateEventArgs args)
         {
             if (args.Author.IsBot || args.Guild == null) return;
 

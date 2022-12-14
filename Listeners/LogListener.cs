@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using DSharpPlus;
 using LucoaBot.Data;
@@ -21,11 +22,18 @@ namespace LucoaBot.Listeners
             _busQueue = busQueue;
         }
 
-        public void Initialize()
+        public void Start()
         {
             //client.MessageDeleted += Client_MessageDeleted;
             _busQueue.UserActionEvent += OnUserActionEvent;
             _busQueue.EventLogEvent += OnEventLogEvent;
+        }
+
+        public void Stop()
+        {
+            //client.MessageDeleted -= Client_MessageDeleted;
+            _busQueue.UserActionEvent -= OnUserActionEvent;
+            _busQueue.EventLogEvent -= OnEventLogEvent;
         }
 
         private async Task OnUserActionEvent(UserActionMessage userActionMessage)

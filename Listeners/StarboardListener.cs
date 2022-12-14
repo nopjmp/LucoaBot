@@ -28,6 +28,7 @@ namespace LucoaBot.Listeners
 #else
         private const int DefaultThreshold = 1;
 #endif
+
         public StarboardListener(ILogger<StarboardListener> logger, DiscordClient client,
             IServiceProvider serviceProvider, DatabaseContext database)
         {
@@ -37,51 +38,40 @@ namespace LucoaBot.Listeners
             _database = database;
         }
 
-        public void Initialize()
+        public void Start()
         {
-            _client.MessageDeleted += (_, e) =>
-            {
-                Client_MessageDeleted(e).Forget();
-                return Task.CompletedTask;
-            };
-            _client.MessageReactionAdded += (_, e) =>
-            {
-                ClientOnMessageReactionAdded(e).Forget();
-                return Task.CompletedTask;
-            };
-            _client.MessageReactionRemoved += (_, e) =>
-            {
-                ClientOnMessageReactionRemoved(e).Forget();
-                return Task.CompletedTask;
-            };
-            _client.MessageReactionsCleared += (_, e) =>
-            {
-                ClientOnMessageReactionsCleared(e).Forget();
-                return Task.CompletedTask;
-            };
-            _client.MessageReactionRemovedEmoji += (_, e) =>
-            {
-                ClientOnMessageReactionRemovedEmoji(e).Forget();
-                return Task.CompletedTask;
-            };
+            _client.MessageDeleted += Client_MessageDeleted;
+            _client.MessageReactionAdded += ClientOnMessageReactionAdded;
+            _client.MessageReactionRemoved += ClientOnMessageReactionRemoved;
+            _client.MessageReactionsCleared += ClientOnMessageReactionsCleared;
+            _client.MessageReactionRemovedEmoji += ClientOnMessageReactionRemovedEmoji;
         }
 
-        private Task ClientOnMessageReactionRemovedEmoji(MessageReactionRemoveEmojiEventArgs args)
+        public void Stop()
+        {
+            _client.MessageDeleted -= Client_MessageDeleted;
+            _client.MessageReactionAdded -= ClientOnMessageReactionAdded;
+            _client.MessageReactionRemoved -= ClientOnMessageReactionRemoved;
+            _client.MessageReactionsCleared -= ClientOnMessageReactionsCleared;
+            _client.MessageReactionRemovedEmoji -= ClientOnMessageReactionRemovedEmoji;
+        }
+
+        private Task ClientOnMessageReactionRemovedEmoji(DiscordClient _, MessageReactionRemoveEmojiEventArgs args)
         {
             return OnReactionEvent(args.Emoji, true, args.Guild, args.Message);
         }
 
-        private Task ClientOnMessageReactionAdded(MessageReactionAddEventArgs args)
+        private Task ClientOnMessageReactionAdded(DiscordClient _, MessageReactionAddEventArgs args)
         {
             return OnReactionEvent(args.Emoji, false, args.Guild, args.Message);
         }
 
-        private Task ClientOnMessageReactionRemoved(MessageReactionRemoveEventArgs args)
+        private Task ClientOnMessageReactionRemoved(DiscordClient _, MessageReactionRemoveEventArgs args)
         {
             return OnReactionEvent(args.Emoji, false, args.Guild, args.Message);
         }
 
-        private Task ClientOnMessageReactionsCleared(MessageReactionsClearEventArgs args)
+        private Task ClientOnMessageReactionsCleared(DiscordClient _, MessageReactionsClearEventArgs args)
         {
             return OnReactionEvent(_emoji, true, args.Guild, args.Message);
         }
@@ -89,16 +79,14 @@ namespace LucoaBot.Listeners
 
         private async Task<ulong?> GetStarboardChannel(ulong guildId)
         {
-            using var scope = _serviceProvider.CreateScope();
-            await using var context = scope.ServiceProvider.GetService<DatabaseContext>();
-            var config = await context.GuildConfigs.AsNoTracking()
+            var config = await _database.GuildConfigs.AsNoTracking()
                 .Where(e => e.GuildId == guildId)
                 .FirstOrDefaultAsync();
 
             return config?.StarBoardChannel;
         }
 
-        private async Task Client_MessageDeleted(MessageDeleteEventArgs args)
+        private async Task Client_MessageDeleted(DiscordClient _, MessageDeleteEventArgs args)
         {
             try
             {
