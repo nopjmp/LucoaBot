@@ -1,0 +1,6 @@
+app = "lucoabot"
+
+[deploy]
+strategy = "immediate"
+
+[[services]]

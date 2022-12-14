@@ -63,9 +63,9 @@ namespace LucoaBot.Listeners
 
             var urls = Enumerable.Empty<string>().Concat(attachments).Concat(embeds);
 
+            var httpClient = _httpClientFactory.CreateClient();
             var tasks = urls.Select(async url =>
             {
-                var httpClient = _httpClientFactory.CreateClient();
                 await using var response = await httpClient.GetStreamAsync(url);
 
                 try
