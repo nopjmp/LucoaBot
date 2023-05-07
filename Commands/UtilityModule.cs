@@ -185,7 +185,7 @@ namespace LucoaBot.Commands
                 if (emote.IsAnimated)
                 {
                     var filename = Path.GetFileName(emoteUri.LocalPath);
-                    await context.RespondAsync(builder.WithFile(filename, imageStream));
+                    await context.RespondAsync(builder.AddFile(filename, imageStream));
                     return;
                 }
                 else
@@ -201,7 +201,7 @@ namespace LucoaBot.Commands
                         await image.SaveAsWebpAsync(outputStream);
                         outputStream.Seek(0, SeekOrigin.Begin);
 
-                        await context.RespondAsync(builder.WithFile(filename + ".webp", outputStream));
+                        await context.RespondAsync(builder.AddFile(filename + ".webp", outputStream));
                     }
                 }
             }
@@ -222,7 +222,7 @@ namespace LucoaBot.Commands
             var httpClient = _httpClientFactory.CreateClient();
             await using var response = await httpClient.GetStreamAsync(avatarUri);
 
-            await context.RespondAsync(new DiscordMessageBuilder().WithFile(Path.GetFileName(avatarUri.LocalPath), response));
+            await context.RespondAsync(new DiscordMessageBuilder().AddFile(Path.GetFileName(avatarUri.LocalPath), response));
         }
 
         [Command("userinfo")]

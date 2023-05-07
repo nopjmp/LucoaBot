@@ -58,24 +58,27 @@ namespace LucoaBot.Listeners
 
         private Task ClientOnMessageReactionRemovedEmoji(DiscordClient _, MessageReactionRemoveEmojiEventArgs args)
         {
-            return OnReactionEvent(args.Emoji, true, args.Guild, args.Message);
+            OnReactionEvent(args.Emoji, true, args.Guild, args.Message).Forget();
+            return Task.CompletedTask;
         }
 
         private Task ClientOnMessageReactionAdded(DiscordClient _, MessageReactionAddEventArgs args)
         {
-            return OnReactionEvent(args.Emoji, false, args.Guild, args.Message);
+            OnReactionEvent(args.Emoji, false, args.Guild, args.Message).Forget();
+            return Task.CompletedTask;
         }
 
         private Task ClientOnMessageReactionRemoved(DiscordClient _, MessageReactionRemoveEventArgs args)
         {
-            return OnReactionEvent(args.Emoji, false, args.Guild, args.Message);
+            OnReactionEvent(args.Emoji, false, args.Guild, args.Message).Forget();
+            return Task.CompletedTask;
         }
 
         private Task ClientOnMessageReactionsCleared(DiscordClient _, MessageReactionsClearEventArgs args)
         {
-            return OnReactionEvent(_emoji, true, args.Guild, args.Message);
+            OnReactionEvent(_emoji, true, args.Guild, args.Message).Forget();
+            return Task.CompletedTask;
         }
-
 
         private async Task<ulong?> GetStarboardChannel(ulong guildId)
         {
@@ -86,7 +89,13 @@ namespace LucoaBot.Listeners
             return config?.StarBoardChannel;
         }
 
-        private async Task Client_MessageDeleted(DiscordClient _, MessageDeleteEventArgs args)
+        private Task Client_MessageDeleted(DiscordClient _, MessageDeleteEventArgs args)
+        {
+            HandleMessageDeleted(args).Forget();
+            return Task.CompletedTask;
+        }
+
+        private async Task HandleMessageDeleted(MessageDeleteEventArgs args)
         {
             try
             {
